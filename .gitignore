@@ -7,18 +7,68 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Dependency directories
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+build/
+
+# Local env files
+.env
+.env.local
+.env.*.local
 
 # Editor directories and files
-.vscode/*
+.vscode/
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Mac system files
+.AppleDouble
+.LSOverride
+
+# Optional npm cache directory
+.npm/
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Optional yarn cache directory
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Optional pnpm store directory
+.pnpm-store/
+
+# Parcel-bundler cache (if used)
+.cache/
+
+# Next.js build output (if using Next.js)
+.next/
+
+# Vite cache (if using Vite)
+node_modules/.vite/
+
+# Storybook build output (if using Storybook)
+.out/
+
+# JetBrains IDEs
+*.iml
+.idea/
+
+# Test coverage output
+coverage/
+
