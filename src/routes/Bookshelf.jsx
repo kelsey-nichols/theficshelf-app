@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserAuth } from "../context/AuthContext";
 
-const Dashboard = () => {
+const Bookshelf = () => {
   const { session, signOut } = UserAuth();
   const navigate = useNavigate();
   const [error, setError] = useState(null);
@@ -19,20 +19,12 @@ const Dashboard = () => {
 
   return (
     <div>
-      <h1>Dashboard</h1>
+      <h1>Bookshelf</h1>
       <h2>Welcome, {session?.user?.email}</h2>
-      <div>
-        <p
-          onClick={handleSignOut}
-          className="hover:cursor-pointer border inline-block px-4 py-3 mt-4"
-        >
-          Sign out
-        </p>
-        {error && <p className="text-red-500 mt-2">{error}</p>}
-      </div>
+      
     </div>
   );
 };
 
-export default Dashboard;
+export default Bookshelf;
 

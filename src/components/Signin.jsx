@@ -19,7 +19,7 @@ const Signin = () => {
       setError(error.message || "Failed to sign in.");
       setTimeout(() => setError(""), 3000);
     } else {
-      navigate("/dashboard");
+      navigate("/bookshelf");
     }
   };
 
