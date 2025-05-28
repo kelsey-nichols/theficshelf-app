@@ -43,18 +43,19 @@ const CompleteProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     setErrorMsg("");
     setUsernameError("");
-
+  
     if (!username || !displayName) {
       setErrorMsg("Username and Display Name are required.");
       return;
     }
-
+  
     setLoading(true);
-
-    const { error } = await supabase.from("profiles").insert([
+  
+    // Insert profile
+    const { error: profileError } = await supabase.from("profiles").insert([
       {
         id: user.id,
         username,
@@ -62,22 +63,54 @@ const CompleteProfile = () => {
         bio,
       },
     ]);
-
-    setLoading(false);
-
-    if (!error) {
-      navigate("/bookshelf");
-    } else {
-      // Check for duplicate username error
+  
+    if (profileError) {
+      setLoading(false);
       if (
-        error.code === "23505" &&
-        error.message.includes("profiles_username_key")
+        profileError.code === "23505" &&
+        profileError.message.includes("profiles_username_key")
       ) {
         setUsernameError("Username is already taken.");
       } else {
         setErrorMsg("Something went wrong. Please try again.");
       }
+      return;
     }
+  
+    // Insert default shelves
+    const { error: shelfError } = await supabase.from("shelves").insert([
+      {
+        user_id: user.id,
+        title: "Archive",
+        is_private: true,
+        color: "#8c8c8c", // optional color for Archive
+        sort_order: 1,
+      },
+      {
+        user_id: user.id,
+        title: "Currently Reading",
+        is_private: false,
+        color: "#6ba4ff", // optional color
+        sort_order: 2,
+      },
+      {
+        user_id: user.id,
+        title: "TBR",
+        is_private: false,
+        color: "#ffb347", // optional color
+        sort_order: 3,
+      },
+    ]);
+  
+    setLoading(false);
+  
+    if (shelfError) {
+      setErrorMsg("Profile saved, but failed to create shelves.");
+      console.error("Shelf creation error:", shelfError);
+      return;
+    }
+  
+    navigate("/bookshelf");
   };
 
   return (

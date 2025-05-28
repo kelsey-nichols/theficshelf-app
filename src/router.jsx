@@ -15,6 +15,8 @@ import LogFic from "./routes/LogFic";
 import Feed from "./routes/Feed";
 import CompleteProfile from "./components/CompleteProfile";
 import ProfileProtectedRoute from "./components/ProfileProtectedRoute";
+import ShelfPage from "./routes/ShelfPage";
+import CreateShelf from "./routes/CreateShelf";
 
 export const router = createBrowserRouter([
   {
@@ -29,7 +31,7 @@ export const router = createBrowserRouter([
       { path: "forgot-password", element: <ForgotPassword /> },
       { path: "terms", element: <Tos /> },
 
-      // Routes for logged in users who may not have completed profile yet
+      // Logged in users who may not have completed profile yet
       {
         element: <PrivateRoute><Outlet /></PrivateRoute>,
         children: [
@@ -37,7 +39,7 @@ export const router = createBrowserRouter([
         ],
       },
 
-      // Routes for logged in users who have completed profile
+      // Logged in users who have completed profile
       {
         element: (
           <PrivateRoute>
@@ -52,6 +54,8 @@ export const router = createBrowserRouter([
           { path: "discover", element: <Discover /> },
           { path: "log-fic", element: <LogFic /> },
           { path: "feed", element: <Feed /> },
+          { path: "bookshelf/:shelfId", element: <ShelfPage /> },
+          { path: "create-shelf", element: <CreateShelf /> },
         ],
       },
     ],
