@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import { ChevronRight, ChevronLeft } from "lucide-react"; //
 
 const ShelfPage = () => {
   const { shelfId } = useParams();
+  const navigate = useNavigate(); // <-- Added useNavigate
   const [shelf, setShelf] = useState(null);
   const [profile, setProfile] = useState(null);
   const [fandoms, setFandoms] = useState([]);
@@ -12,13 +14,16 @@ const ShelfPage = () => {
   const [fics, setFics] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [showRelationships, setShowRelationships] = useState(false);
+  const [showFandoms, setShowFandoms] = useState(false);
+  const [showTags, setShowTags] = useState(false);
+
   useEffect(() => {
     if (!shelfId) return;
 
     const fetchShelfData = async () => {
       setLoading(true);
 
-      // 1. Fetch shelf
       const { data: shelfData, error: shelfError } = await supabase
         .from("shelves")
         .select("*")
@@ -30,10 +35,8 @@ const ShelfPage = () => {
         setLoading(false);
         return;
       }
-
       setShelf(shelfData);
 
-      // 1a. Fetch profile based on shelfData.user_id
       if (shelfData?.user_id) {
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
@@ -49,9 +52,7 @@ const ShelfPage = () => {
         }
       }
 
-      // Helper to fetch related data via join tables
       const fetchRelated = async (joinTable, relatedTable, joinColumn) => {
-        // Get related IDs from join table
         const { data: joinData, error: joinError } = await supabase
           .from(joinTable)
           .select(joinColumn)
@@ -61,18 +62,11 @@ const ShelfPage = () => {
           console.error(`Error fetching from ${joinTable}:`, joinError);
           return [];
         }
-        if (!joinData || joinData.length === 0) {
-          return [];
-        }
+        if (!joinData || joinData.length === 0) return [];
 
         const relatedIds = joinData.map((row) => row[joinColumn]);
         if (relatedIds.length === 0) return [];
 
-        // Debug logs
-        console.log(`Join data from ${joinTable}:`, joinData);
-        console.log(`Related IDs from ${relatedTable}:`, relatedIds);
-
-        // Get details from related table
         const { data: relatedData, error: relatedError } = await supabase
           .from(relatedTable)
           .select("id, name")
@@ -83,11 +77,9 @@ const ShelfPage = () => {
           return [];
         }
 
-        console.log(`Related data from ${relatedTable}:`, relatedData);
         return relatedData || [];
       };
 
-      // 2. Fetch fandoms, relationships, tags
       const [fandomsData, relationshipsData, tagsData] = await Promise.all([
         fetchRelated("shelf_fandoms", "fandoms", "fandom_id"),
         fetchRelated("shelf_relationships", "relationships", "relationship_id"),
@@ -98,18 +90,44 @@ const ShelfPage = () => {
       setRelationships(relationshipsData);
       setTags(tagsData);
 
-      // 3. Fetch fics directly related to shelf
+      const { data: shelfFicsData, error: shelfFicsError } = await supabase
+        .from("shelf_fic")
+        .select("fic_id, position")
+        .eq("shelf_id", shelfId)
+        .order("position", { ascending: true });
+
+      if (shelfFicsError) {
+        console.error("Error fetching shelf_fic data:", shelfFicsError);
+        setFics([]);
+        setLoading(false);
+        return;
+      }
+
+      if (!shelfFicsData || shelfFicsData.length === 0) {
+        setFics([]);
+        setLoading(false);
+        return;
+      }
+
+      const ficIds = shelfFicsData.map((sf) => sf.fic_id);
+
       const { data: ficsData, error: ficsError } = await supabase
         .from("fics")
         .select("id, title, author")
-        .eq("shelf_id", shelfId);
+        .in("id", ficIds);
 
       if (ficsError) {
         console.error("Error fetching fics:", ficsError);
         setFics([]);
-      } else {
-        setFics(ficsData);
+        setLoading(false);
+        return;
       }
+
+      const ficsOrdered = shelfFicsData
+        .map((sf) => ficsData.find((fic) => fic.id === sf.fic_id))
+        .filter(Boolean);
+
+      setFics(ficsOrdered);
 
       setLoading(false);
     };
@@ -120,64 +138,158 @@ const ShelfPage = () => {
   if (loading) return <p>Loading shelf details...</p>;
   if (!shelf) return <p>Shelf not found.</p>;
 
+  const CollapsibleSection = ({ title, items, open, onToggle, emptyMessage }) => {
+    return (
+      <div
+        style={{
+          marginBottom: "1rem",
+          cursor: "pointer",
+          userSelect: "none",
+          color: "#d5baa9",
+          fontFamily: "serif",
+        }}
+        onClick={onToggle}
+      >
+        <h3
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            margin: 0,
+          }}
+        >
+          <ChevronRight
+            size={16}
+            style={{
+              transition: "transform 0.2s ease",
+              transform: open ? "rotate(90deg)" : "rotate(0deg)",
+              flexShrink: 0,
+            }}
+          />
+          {title}
+        </h3>
+        {open && (
+          <p
+            style={{
+              marginLeft: "1.8rem",
+              color: "#d5baa9",
+              marginTop: "0.25rem",
+            }}
+          >
+            {items.length > 0 ? items.map((item) => item.name).join(", ") : emptyMessage}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div>
-      <h1>{shelf.title || "Untitled Shelf"}</h1>
-      <p>
-        Shelf created by: <strong>{profile?.username || "Unknown user"}</strong>
-      </p>
+    <div
+    style={{
+      backgroundColor: "#d5baa9",
+      minHeight: "100vh",
+      padding: "2rem",
+      fontFamily: "serif",
+      position: "relative",
+    }}
+  >
+    {/* Back Button */}
+    <button
+      onClick={() => navigate(-1)}
+      aria-label="Go back"
+      style={{
+    position: "absolute",
+    top: "1rem",
+    left: "1.5rem",
+    backgroundColor: "#d5baa9",
+    padding: "0.3rem",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    zIndex: 10,
+  }}
+    >
+      <ChevronLeft size={30} color="#202d26" />
+    </button>
 
-      <section>
-        <h2>Relationships</h2>
-        {relationships.length ? (
-          <ul>
-            {relationships.map((rel) => (
-              <li key={rel.id}>{rel.name}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No relationships listed.</p>
-        )}
-      </section>
+    {/* Shelf Info Block */}
+    <div
+      style={{
+         backgroundColor: "#202d26",
+          color: "#d5baa9",
+          padding: "1.5rem 2rem",
+          borderRadius: "8px",
+          marginTop: "3rem", 
+          marginBottom: "2rem",
+          maxWidth: "600px", 
+    }}
+    >
+        <h1 style={{ margin: 0 }}>{shelf.title || "Untitled Shelf"}</h1>
+        <p style={{ marginTop: "0.5rem", fontStyle: "italic" }}>
+          Shelf created by: <strong>{profile?.username || "Unknown user"}</strong>
+        </p>
 
-      <section>
-        <h2>Fandoms</h2>
-        {fandoms.length ? (
-          <ul>
-            {fandoms.map((fandom) => (
-              <li key={fandom.id}>{fandom.name}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No fandoms listed.</p>
-        )}
-      </section>
+        <CollapsibleSection
+          title="Relationships"
+          items={relationships}
+          open={showRelationships}
+          onToggle={() => setShowRelationships((prev) => !prev)}
+          emptyMessage="No relationships listed."
+        />
+        <CollapsibleSection
+          title="Fandoms"
+          items={fandoms}
+          open={showFandoms}
+          onToggle={() => setShowFandoms((prev) => !prev)}
+          emptyMessage="No fandoms listed."
+        />
+        <CollapsibleSection
+          title="Tags"
+          items={tags}
+          open={showTags}
+          onToggle={() => setShowTags((prev) => !prev)}
+          emptyMessage="No tags listed."
+        />
+      </div>
 
-      <section>
-        <h2>Tags</h2>
-        {tags.length ? (
-          <ul>
-            {tags.map((tag) => (
-              <li key={tag.id}>{tag.name}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No tags listed.</p>
-        )}
-      </section>
-
-      <section>
-        <h2>Fics</h2>
+      <section style={{ maxWidth: "600px" }}>
+        <h2 style={{ color: "#202d26", fontFamily: "serif" }}>Fics</h2>
         {fics.length ? (
-          <ul>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+            }}
+          >
             {fics.map((fic) => (
-              <li key={fic.id}>
+              <div
+                key={fic.id}
+                style={{
+                  border: "2px solid #202d26",
+                  borderRadius: "6px",
+                  padding: "1rem",
+                  color: "#202d26",
+                  backgroundColor: "#d5baa9",
+                  cursor: "pointer",
+                  transition: "background-color 0.2s ease",
+                }}
+                onClick={() => navigate(`/fic/${fic.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      navigate(`/fic/${fic.id}`);
+                    }
+                  }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open fic ${fic.title} by ${fic.author}`}
+              >
                 <strong>{fic.title}</strong> by {fic.author || "Unknown"}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : (
-          <p>No fics in this shelf.</p>
+          <p style={{ color: "#202d26" }}>No fics in this shelf.</p>
         )}
       </section>
     </div>

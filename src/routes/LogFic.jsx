@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AsyncCreatableSelect from 'react-select/async-creatable';
 import ReactSelect from 'react-select';
 import { supabase } from '../supabaseClient';
@@ -34,6 +34,63 @@ const LogFic = () => {
 
   const [formData, setFormData] = useState(initialFormState);
   const [shelfOptions, setShelfOptions] = useState([]);
+
+  const debounceTimer = useRef(null);
+
+  useEffect(() => {
+    if (!formData.link) return;
+
+    // debounce so we don't spam db requests while typing
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const { data: fic, error } = await supabase
+          .from('fics')
+          .select('*')
+          .eq('link', formData.link)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching fic by link:', error);
+          return;
+        }
+
+        if (fic) {
+          // Update the formData with fic info except reading_log fields
+          setFormData((prev) => ({
+            ...prev,
+            title: fic.title || '',
+            author: fic.author || '',
+            summary: fic.summary || '',
+            rating: fic.rating || '',
+            archive_warning: fic.archive_warning || [],
+            category: fic.category || '',
+            fandoms: fic.fandoms || [], // note: you might need to fetch these separately if they're in join tables
+            relationships: prev.relationships, // keep these as-is or fetch similarly
+            characters: prev.characters,
+            tags: prev.tags,
+            words: fic.words ? fic.words.toString() : '',
+            chapters: fic.chapters || '',
+            hits: fic.hits ? fic.hits.toString() : '',
+            kudos: fic.kudos ? fic.kudos.toString() : '',
+            shelves: prev.shelves,
+            // keep reading log fields intact:
+            status: prev.status,
+            date_started: prev.date_started,
+            date_finished: prev.date_finished,
+            reread_dates: prev.reread_dates,
+            current_chapter: prev.current_chapter,
+            notes: prev.notes,
+          }));
+        }
+      } catch (e) {
+        console.error('Error loading fic on link change:', e);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(debounceTimer.current);
+  }, [formData.link]);
 
   useEffect(() => {
     const fetchShelves = async () => {
