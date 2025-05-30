@@ -46,7 +46,7 @@ const useOutsideClick = (ref, callback) => {
   }, [ref, callback]);
 };
 
-const SortableShelf = ({ shelf, isPrivate, editing, onColorChange, onDelete }) => {
+const SortableShelf = ({ shelf, isPrivate, editing, onColorChange, onDelete, onRename }) => {
   const {
     attributes,
     listeners,
@@ -63,11 +63,27 @@ const SortableShelf = ({ shelf, isPrivate, editing, onColorChange, onDelete }) =
   };
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [newTitle, setNewTitle] = useState(shelf.title);
   const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
+
   useOutsideClick(dropdownRef, () => setDropdownOpen(false));
 
-  // Check if shelf is "Archive"
   const isArchive = shelf.title === "Archive";
+
+  useEffect(() => {
+    if (renaming && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [renaming]);
+
+  const handleRenameSubmit = () => {
+    if (newTitle.trim() && newTitle !== shelf.title) {
+      onRename(shelf.id, newTitle.trim());
+    }
+    setRenaming(false);
+  };
 
   return (
     <div
@@ -82,12 +98,41 @@ const SortableShelf = ({ shelf, isPrivate, editing, onColorChange, onDelete }) =
             {...listeners}
             {...attributes}
             className="cursor-grab touch-none px-2"
-            aria-label={`Drag handle for shelf ${shelf.title}`}
           >
             <GripVertical size={20} className="text-gray-600" />
           </div>
         )}
-        <h3 className="text-xl font-semibold">{shelf.title}</h3>
+
+        {editing && !isArchive ? (
+          renaming ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onBlur={handleRenameSubmit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRenameSubmit();
+                if (e.key === "Escape") {
+                  setRenaming(false);
+                  setNewTitle(shelf.title);
+                }
+              }}
+              className="text-xl font-semibold bg-white border rounded px-2 py-1 w-40"
+            />
+          ) : (
+            <h3
+              className="text-xl font-semibold cursor-pointer underline decoration-dotted"
+              onClick={() => setRenaming(true)}
+              title="Click to rename"
+            >
+              {shelf.title}
+            </h3>
+          )
+        ) : (
+          <h3 className="text-xl font-semibold">{shelf.title}</h3>
+        )}
+
         {isPrivate && <Lock size={18} className="text-gray-600" />}
       </div>
 
@@ -96,9 +141,6 @@ const SortableShelf = ({ shelf, isPrivate, editing, onColorChange, onDelete }) =
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen((o) => !o)}
-              aria-haspopup="true"
-              aria-expanded={dropdownOpen}
-              aria-label={`Choose color for shelf ${shelf.title}`}
               className="p-1 rounded hover:bg-gray-200"
             >
               <MoreVertical size={20} />
@@ -132,11 +174,6 @@ const SortableShelf = ({ shelf, isPrivate, editing, onColorChange, onDelete }) =
           <button
             onClick={() => !isArchive && onDelete(shelf.id)}
             disabled={isArchive}
-            aria-label={
-              isArchive
-                ? `Delete disabled for Archive shelf`
-                : `Delete shelf ${shelf.title}`
-            }
             className={`p-1 rounded hover:bg-red-100 ${
               isArchive ? "opacity-50 cursor-not-allowed" : "hover:text-red-600"
             }`}
@@ -238,6 +275,23 @@ const Bookshelf = () => {
     }
   };
 
+  const handleRename = async (shelfId, newTitle) => {
+  setShelves((prev) =>
+    prev.map((shelf) =>
+      shelf.id === shelfId ? { ...shelf, title: newTitle } : shelf
+    )
+  );
+
+  const { error } = await supabase
+      .from("shelves")
+      .update({ title: newTitle })
+      .eq("id", shelfId);
+
+    if (error) {
+      console.error("Failed to rename shelf:", error);
+    }
+  };
+
   const handleDelete = async (shelfId) => {
   const confirmed = window.confirm(
     "Are you sure you want to delete this shelf and all the fics stored within it? This action cannot be undone."
@@ -300,6 +354,7 @@ const Bookshelf = () => {
                   editing={editing}
                   onColorChange={handleColorChange}
                   onDelete={handleDelete}
+                  onRename={handleRename}
                 />
               ))}
             </div>

@@ -20,6 +20,9 @@ import ShelfPage from "./routes/ShelfPage";
 import CreateShelf from "./routes/CreateShelf";
 import BookmarkedShelves from "./routes/BookmarkedShelves";
 import FicPage from "./routes/FicPage";
+import AddFic from "./routes/AddFic";
+import ShareFicPage from "./routes/ShareFic";
+import ShareShelfPage from "./routes/ShareShelf";
 
 export const router = createBrowserRouter([
   {
@@ -56,11 +59,14 @@ export const router = createBrowserRouter([
         children: [
           { path: "bookshelf", element: <Bookshelf /> },
           { path: "discover", element: <Discover /> },
-          { path: "log-fic", element: <LogFic /> },
+          { path: "log-fic/:ficId", element: <LogFic /> },  
+          { path: "add-fic", element: <AddFic /> }, 
           { path: "feed", element: <Feed /> },
           { path: "bookshelf/:shelfId", element: <ShelfPage /> },
           { path: "create-shelf", element: <CreateShelf /> },
           { path: "fic/:ficId", element: <FicPage /> },
+          { path : "/share-fic", element: <ShareFicPage /> },
+          { path : "/share-shelf", element: <ShareShelfPage /> },
 
           // ✅ Nested user routes using UserLayout
           {

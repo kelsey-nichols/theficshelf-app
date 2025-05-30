@@ -11,6 +11,7 @@ const UserProfile = () => {
   const [error, setError] = useState(null);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [wordsRead, setWordsRead] = useState(0);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     username: "",
@@ -32,7 +33,7 @@ const UserProfile = () => {
         if (profileError) throw profileError;
 
         setProfile(profileData);
-        setForm(profileData); // preload form
+        setForm(profileData);
 
         const { count: followingCount } = await supabase
           .from("follows")
@@ -55,6 +56,56 @@ const UserProfile = () => {
     fetchProfileData();
   }, [session]);
 
+  useEffect(() => {
+    const fetchWordsRead = async () => {
+      if (!session?.user?.id) return;
+
+      try {
+        const { data: shelfData, error: shelfError } = await supabase
+          .from("shelves")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .eq("title", "Archive")
+          .single();
+
+        if (shelfError || !shelfData) {
+          console.warn("Archive shelf not found.");
+          return;
+        }
+
+        const archiveShelfId = shelfData.id;
+
+        const { data: shelfFics, error: shelfFicsError } = await supabase
+          .from("shelf_fic")
+          .select("fic_id")
+          .eq("shelf_id", archiveShelfId);
+
+        if (shelfFicsError) throw shelfFicsError;
+
+        const ficIds = shelfFics.map((item) => item.fic_id);
+
+        if (ficIds.length === 0) {
+          setWordsRead(0);
+          return;
+        }
+
+        const { data: ficsData, error: ficsError } = await supabase
+          .from("fics")
+          .select("words")
+          .in("id", ficIds);
+
+        if (ficsError) throw ficsError;
+
+        const totalWords = ficsData.reduce((sum, fic) => sum + (fic.words || 0), 0);
+        setWordsRead(totalWords);
+      } catch (err) {
+        console.error("Error fetching word count:", err.message);
+      }
+    };
+
+    fetchWordsRead();
+  }, [session]);
+
   const handleEditToggle = () => {
     setEditing(!editing);
     setError(null);
@@ -65,46 +116,43 @@ const UserProfile = () => {
   };
 
   const handleSave = async (e) => {
-  e.preventDefault();
-  setError(null);
+    e.preventDefault();
+    setError(null);
 
-  if (!session?.user?.id) {
-    setError("User not authenticated.");
-    return;
-  }
-
-  try {
-    console.log("Attempting update for user id:", session.user.id);
-    const { data, error, status } = await supabase
-      .from("profiles")
-      .update({
-        username: form.username,
-        display_name: form.display_name,
-        bio: form.bio,
-      })
-      .eq("id", session.user.id)
-      .select();  // <-- this is key to get updated data back
-
-    console.log("Update result:", { data, error, status });
-
-    if (error) {
-      setError(`Failed to update profile: ${error.message}`);
+    if (!session?.user?.id) {
+      setError("User not authenticated.");
       return;
     }
 
-    if (!data || data.length === 0) {
-      setError("No profile updated, please check your user ID and permissions.");
-      return;
-    }
+    try {
+      const { data, error, status } = await supabase
+        .from("profiles")
+        .update({
+          username: form.username,
+          display_name: form.display_name,
+          bio: form.bio,
+        })
+        .eq("id", session.user.id)
+        .select();
 
-    setProfile(data[0]);
-    setForm(data[0]);
-    setEditing(false);
-  } catch (err) {
-    console.error("Unexpected error:", err);
-    setError("An unexpected error occurred.");
-  }
-};
+      if (error) {
+        setError(`Failed to update profile: ${error.message}`);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        setError("No profile updated, please check your user ID and permissions.");
+        return;
+      }
+
+      setProfile(data[0]);
+      setForm(data[0]);
+      setEditing(false);
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      setError("An unexpected error occurred.");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-[#d3b7a4] text-[#202d26] p-6 font-serif">
@@ -167,6 +215,10 @@ const UserProfile = () => {
                 </div>
               </div>
 
+              <p className="mt-2 text-sm text-[#202d26]/80">
+                {wordsRead.toLocaleString()} words read
+              </p>
+
               <button
                 onClick={handleEditToggle}
                 className="mt-4 border border-[#202d26] px-4 py-2 rounded hover:bg-[#202d26] hover:text-[#d3b7a4]"
@@ -186,3 +238,4 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
+

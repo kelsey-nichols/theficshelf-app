@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
-import { ChevronRight, ChevronLeft } from "lucide-react"; //
+import { ChevronRight, ChevronLeft, MoreVertical } from "lucide-react"; //
 
 const ShelfPage = () => {
   const { shelfId } = useParams();
-  const navigate = useNavigate(); // <-- Added useNavigate
+  const navigate = useNavigate(); 
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setMenuOpen((prev) => !prev);
+  };
   const [shelf, setShelf] = useState(null);
   const [profile, setProfile] = useState(null);
   const [fandoms, setFandoms] = useState([]);
@@ -185,50 +190,102 @@ const ShelfPage = () => {
 
   return (
     <div
-    style={{
-      backgroundColor: "#d5baa9",
-      minHeight: "100vh",
-      padding: "2rem",
-      fontFamily: "serif",
-      position: "relative",
-    }}
-  >
-    {/* Back Button */}
-    <button
-      onClick={() => navigate(-1)}
-      aria-label="Go back"
       style={{
-    position: "absolute",
-    top: "1rem",
-    left: "1.5rem",
-    backgroundColor: "#d5baa9",
-    padding: "0.3rem",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    zIndex: 10,
-  }}
+        backgroundColor: "#d5baa9",
+        minHeight: "100vh",
+        padding: "2rem",
+        fontFamily: "serif",
+        position: "relative",
+      }}
     >
-      <ChevronLeft size={30} color="#202d26" />
-    </button>
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        aria-label="Go back"
+        style={{
+          position: "absolute",
+          top: "1rem",
+          left: "1.5rem",
+          backgroundColor: "#d5baa9",
+          padding: "0.3rem",
+          border: "none",
+          borderRadius: "6px",
+          cursor: "pointer",
+          zIndex: 10,
+        }}
+      >
+        <ChevronLeft size={30} color="#202d26" />
+      </button>
 
-    {/* Shelf Info Block */}
-    <div
-      style={{
-         backgroundColor: "#202d26",
+      {/* Share Shelf vertical menu */}
+      <div style={{ position: "absolute", top: "1rem", right: "1rem" }}>
+        <button
+          onClick={toggleMenu}
+          aria-label="Open shelf actions menu"
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "#d5baa9",
+            cursor: "pointer",
+          }}
+        >
+          <MoreVertical size={20} color="#202d26" />
+        </button>
+
+        {menuOpen && (
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              right: 0,
+              backgroundColor: "#1a1a1a",
+              border: "1px solid #333",
+              borderRadius: "4px",
+              padding: "0.5rem",
+              marginTop: "0.25rem",
+              zIndex: 100,
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.5rem",
+              minWidth: "150px",
+            }}
+          >
+            <button
+              onClick={() => navigate("/share-shelf", { state: { shelf } })}
+              style={{
+                backgroundColor: "#0074D9",
+                color: "#fff",
+                border: "none",
+                padding: "0.5rem",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              Share Shelf
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Shelf Info Block */}
+      <div
+        style={{
+          backgroundColor: "#202d26",
           color: "#d5baa9",
           padding: "1.5rem 2rem",
           borderRadius: "8px",
-          marginTop: "3rem", 
+          marginTop: "3rem",
           marginBottom: "2rem",
-          maxWidth: "600px", 
-    }}
-    >
+          maxWidth: "600px",
+        }}
+      >
         <h1 style={{ margin: 0 }}>{shelf.title || "Untitled Shelf"}</h1>
         <p style={{ marginTop: "0.5rem", fontStyle: "italic" }}>
           Shelf created by: <strong>{profile?.username || "Unknown user"}</strong>
         </p>
 
+        {/* Collapsible sections */}
         <CollapsibleSection
           title="Relationships"
           items={relationships}
@@ -252,6 +309,7 @@ const ShelfPage = () => {
         />
       </div>
 
+      {/* Fics list */}
       <section style={{ maxWidth: "600px" }}>
         <h2 style={{ color: "#202d26", fontFamily: "serif" }}>Fics</h2>
         {fics.length ? (
@@ -275,11 +333,11 @@ const ShelfPage = () => {
                   transition: "background-color 0.2s ease",
                 }}
                 onClick={() => navigate(`/fic/${fic.id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      navigate(`/fic/${fic.id}`);
-                    }
-                  }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    navigate(`/fic/${fic.id}`);
+                  }
+                }}
                 role="button"
                 tabIndex={0}
                 aria-label={`Open fic ${fic.title} by ${fic.author}`}

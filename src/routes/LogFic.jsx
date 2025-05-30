@@ -1,596 +1,286 @@
-import { useState, useEffect, useRef } from 'react';
-import AsyncCreatableSelect from 'react-select/async-creatable';
-import ReactSelect from 'react-select';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { UserAuth } from "../context/AuthContext";
 
-const mapToOptions = (data) =>
-  data.map((item) => ({ value: item.id, label: item.name || item.title }));
+const READING_STATUS_OPTIONS = ['tbr', 'currently_reading', 'read'];
 
-const LogFic = () => {
-  const initialFormState = {
-    link: '',
-    title: '',
-    author: '',
-    summary: '',
-    rating: '',
-    archive_warning: [],
-    category: '',
-    fandoms: [],
-    relationships: [],
-    characters: [],
-    tags: [],
-    words: '',
-    chapters: '',
-    hits: '',
-    kudos: '',
-    shelves: [],
-    status: '',
-    date_started: new Date().toISOString().split('T')[0],
-    date_finished: '',
-    reread_dates: [],
-    current_chapter: '',
-    notes: '',
-  };
+export default function LogFic() {
+  const { user } = UserAuth();
+  const { ficId } = useParams();
+  const navigate = useNavigate();
 
-  const [formData, setFormData] = useState(initialFormState);
-  const [shelfOptions, setShelfOptions] = useState([]);
-
-  const debounceTimer = useRef(null);
+  const [fic, setFic] = useState(null);
+  const [readingLog, setReadingLog] = useState(null);
+  const [status, setStatus] = useState('tbr');
+  const [shelves, setShelves] = useState([]);
+  const [dateStarted, setDateStarted] = useState('');
+  const [dateFinished, setDateFinished] = useState('');
+  const [currentChapter, setCurrentChapter] = useState('');
+  const [notes, setNotes] = useState('');
+  const [rereadCount, setRereadCount] = useState(0);
+  const [allShelves, setAllShelves] = useState([]);
+  const [archiveShelfId, setArchiveShelfId] = useState(null);
+  const [shareUpdate, setShareUpdate] = useState(false);
 
   useEffect(() => {
-    if (!formData.link) return;
+    async function fetchData() {
+      const { data: ficData } = await supabase
+        .from('fics')
+        .select('*')
+        .eq('id', ficId)
+        .single();
+      setFic(ficData);
 
-    // debounce so we don't spam db requests while typing
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      const { data: shelvesData, error: shelvesError } = await supabase
+        .from('shelves')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('sort_order', { ascending: true });
 
-    debounceTimer.current = setTimeout(async () => {
-      try {
-        const { data: fic, error } = await supabase
-          .from('fics')
-          .select('*')
-          .eq('link', formData.link)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching fic by link:', error);
-          return;
-        }
-
-        if (fic) {
-          // Update the formData with fic info except reading_log fields
-          setFormData((prev) => ({
-            ...prev,
-            title: fic.title || '',
-            author: fic.author || '',
-            summary: fic.summary || '',
-            rating: fic.rating || '',
-            archive_warning: fic.archive_warning || [],
-            category: fic.category || '',
-            fandoms: fic.fandoms || [], // note: you might need to fetch these separately if they're in join tables
-            relationships: prev.relationships, // keep these as-is or fetch similarly
-            characters: prev.characters,
-            tags: prev.tags,
-            words: fic.words ? fic.words.toString() : '',
-            chapters: fic.chapters || '',
-            hits: fic.hits ? fic.hits.toString() : '',
-            kudos: fic.kudos ? fic.kudos.toString() : '',
-            shelves: prev.shelves,
-            // keep reading log fields intact:
-            status: prev.status,
-            date_started: prev.date_started,
-            date_finished: prev.date_finished,
-            reread_dates: prev.reread_dates,
-            current_chapter: prev.current_chapter,
-            notes: prev.notes,
-          }));
-        }
-      } catch (e) {
-        console.error('Error loading fic on link change:', e);
+      if (shelvesError) {
+        console.error('Error fetching shelves:', shelvesError);
+        return;
       }
-    }, 500); // 500ms debounce
 
-    return () => clearTimeout(debounceTimer.current);
-  }, [formData.link]);
-
-  useEffect(() => {
-    const fetchShelves = async () => {
-      const { data, error } = await supabase.from('shelves').select('id, title');
-      if (!error && data) {
-        setShelfOptions(data.map((shelf) => ({ value: shelf.id, label: shelf.title })));
+      setAllShelves(shelvesData);
+      const archiveShelf = shelvesData.find((s) => s.title.toLowerCase() === 'archive');
+      if (!archiveShelf) {
+        console.error('Archive shelf not found!');
+        return;
       }
-    };
-    fetchShelves();
-  }, []);
+      setArchiveShelfId(archiveShelf.id);
 
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+      const { data: logData } = await supabase
+        .from('reading_logs')
+        .select('*')
+        .eq('fic_id', ficId)
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-  const loadOptions = async (table, inputValue) => {
-    if (!inputValue) return [];
-    const { data, error } = await supabase
-      .from(table)
-      .select('id, name')
-      .ilike('name', `%${inputValue}%`)
-      .limit(20);
-    if (error || !data) {
-      console.error(`Error loading ${table}:`, error);
-      return [];
-    }
-    return mapToOptions(data);
-  };
-
-  const getOrCreateEntries = async (table, values) => {
-    const names = values.map((v) => (typeof v === 'string' ? v : v.label));
-    const ids = [];
-
-    for (const name of names) {
-      const { data: existing, error: fetchError } = await supabase
-        .from(table)
-        .select('id')
-        .ilike('name', name)
-        .limit(1);
-
-      if (fetchError) throw fetchError;
-
-      if (existing && existing.length > 0) {
-        ids.push(existing[0].id);
-      } else {
-        const { data: inserted, error: insertError } = await supabase
-          .from(table)
-          .insert([{ name }])
-          .select('id');
-        if (insertError) throw insertError;
-        ids.push(inserted[0].id);
+      if (logData) {
+        setReadingLog(logData);
+        setStatus(logData.status || 'tbr');
+        setShelves(Array.isArray(logData.shelves) ? logData.shelves.map((s) => s.toString()) : []);
+        setDateStarted(logData.date_started || '');
+        setDateFinished(logData.date_finished || '');
+        setCurrentChapter(logData.current_chapter || '');
+        setNotes(logData.notes || '');
+        setRereadCount(logData.reread_dates?.length || 0);
       }
     }
-    return ids;
+
+    if (ficId && user?.id) fetchData();
+  }, [ficId, user]);
+
+  const handleShelfChange = (e) => {
+    const shelfId = e.target.value;
+    if (e.target.checked) {
+      setShelves((prev) => [...prev, shelfId]);
+    } else {
+      setShelves((prev) => prev.filter((id) => id !== shelfId));
+    }
+  };
+
+  const generatePostText = () => {
+    if (!fic?.id) return '';
+    if (status === 'tbr') return 'wants to read [fic]';
+    if (status === 'currently_reading') return 'is currently reading [fic]';
+    if (status === 'read') return 'read [fic]';
+    return '';
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  const insertShelfFic = async (ficId, shelves, user) => {
-    if (!user || !user.id) {
-      throw new Error('User ID is required for shelf ownership verification.');
-    }
-
-    const shelfIds = shelves?.filter(id => typeof id === 'string' && id.length > 0) || [];
-
-    if (shelfIds.length === 0) {
-      console.log('No valid shelves selected, skipping shelf_fic insert.');
+    e.preventDefault();
+    if (!archiveShelfId) {
+      alert("Couldn't find Archive shelf.");
       return;
     }
 
-    // Verify user owns all shelves before inserting
-    const { data: ownedShelves, error: ownershipError } = await supabase
-      .from('shelves')
-      .select('id')
-      .eq('user_id', user.id)
-      .in('id', shelfIds);
+    const updatedShelves = status === 'read'
+      ? Array.from(new Set([...shelves, archiveShelfId.toString()]))
+      : shelves;
 
-    if (ownershipError) throw ownershipError;
+    let reread_dates = readingLog?.reread_dates || [];
+    let finalDateStarted = dateStarted || null;
+    let finalDateFinished = dateFinished || null;
 
-    if (ownedShelves.length !== shelfIds.length) {
-      throw new Error('Shelf ownership verification failed: some shelves are not owned by user.');
+    if (status === 'read') {
+      if (dateFinished) reread_dates.push(dateFinished);
+      finalDateStarted = null;
+      finalDateFinished = null;
     }
 
-    // Query existing shelf_fic links to prevent duplicates
-    const { data: existingLinks, error: existingError } = await supabase
-      .from('shelf_fic')
-      .select('shelf_id')
-      .eq('fic_id', ficId)
-      .in('shelf_id', shelfIds);
-
-    if (existingError) throw existingError;
-
-    const existingShelfIds = existingLinks.map(link => link.shelf_id);
-
-    // Filter out shelf IDs already linked to this fic
-    const newShelfIds = shelfIds.filter(id => !existingShelfIds.includes(id));
-
-    if (newShelfIds.length === 0) {
-      console.log('No new shelf_fic entries to insert (all duplicates).');
-      return;
-    }
-
-    const rows = newShelfIds.map((shelf_id, index) => ({
-      shelf_id,
-      fic_id: ficId,
-      position: index + 1,
-    }));
-
-    const { error: insertError } = await supabase.from('shelf_fic').insert(rows);
-    if (insertError) throw insertError;
-  };
-
-  const insertJoin = async (tableName, columnName, ficId, relatedIds) => {
-  if (!Array.isArray(relatedIds) || relatedIds.length === 0) {
-    console.log(`No valid IDs for ${tableName}, skipping insert.`);
-    return;
-  }
-
-  // Query existing join rows to prevent duplicates
-  const { data: existingLinks, error: existingError } = await supabase
-    .from(tableName)
-    .select(columnName)
-    .eq('fic_id', ficId)
-    .in(columnName, relatedIds);
-
-  if (existingError) throw existingError;
-
-  const existingIds = existingLinks.map(link => link[columnName]);
-
-  // Filter out IDs already linked to this fic
-  const newIds = relatedIds.filter(id => !existingIds.includes(id));
-
-  if (newIds.length === 0) {
-    console.log(`No new entries to insert into ${tableName} (all duplicates).`);
-    return;
-  }
-
-  // Prepare rows for insertion
-  const rows = newIds.map(id => ({
-    fic_id: ficId,
-    [columnName]: id,
-  }));
-
-  const { error: insertError } = await supabase.from(tableName).insert(rows);
-  if (insertError) throw insertError;
-};
-
-
-  try {
-    const { data: { user } = {}, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      alert('You must be logged in to submit a fic.');
-      return;
-    }
-
-    // Check if fic already exists by link
-    const { data: existingFic, error: checkError } = await supabase
-      .from('fics')
-      .select('id')
-      .eq('link', formData.link)
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') throw checkError;
-
-    let ficId;
-
-    if (existingFic) {
-      ficId = existingFic.id;
-
-      await insertShelfFic(ficId, formData.shelves, user);
-
-      const { error: logError } = await supabase.from('reading_logs').insert([{
-        user_id: user.id,
-        fic_id: ficId,
-        status: formData.status,
-        date_started: formData.date_started,
-        date_finished: formData.date_finished || null,
-        reread_dates: formData.reread_dates,
-        current_chapter: parseInt(formData.current_chapter, 10) || null,
-        notes: formData.notes,
-      }]);
-
-      if (logError) throw logError;
-
-      alert('Fic already existed; reading log added!');
-      setFormData(initialFormState);
-      return;
-    }
-
-    // Insert new fic
-    const { data: ficInsert, error: ficError } = await supabase
-      .from('fics')
-      .insert([{
-        link: formData.link,
-        title: formData.title,
-        author: formData.author,
-        summary: formData.summary,
-        rating: formData.rating,
-        archive_warning: formData.archive_warning,
-        category: formData.category,
-        words: parseInt(formData.words, 10),
-        chapters: formData.chapters,
-        hits: parseInt(formData.hits, 10),
-        kudos: parseInt(formData.kudos, 10),
-      }])
-      .select('id');
-
-    if (ficError) throw ficError;
-    ficId = ficInsert[0].id;
-
-    // Insert or get IDs for related entries
-    const fandomIDs = await getOrCreateEntries('fandoms', formData.fandoms);
-    const relationshipIDs = await getOrCreateEntries('relationships', formData.relationships);
-    const characterIDs = await getOrCreateEntries('characters', formData.characters);
-    const tagIDs = await getOrCreateEntries('tags', formData.tags);
-
-    await insertJoin('fic_fandoms', 'fandom_id', ficId, fandomIDs);
-    await insertJoin('fic_relationships', 'relationship_id', ficId, relationshipIDs);
-    await insertJoin('fic_characters', 'character_id', ficId, characterIDs);
-    await insertJoin('fic_tags', 'tag_id', ficId, tagIDs);
-
-    await insertShelfFic(ficId, formData.shelves, user);
-
-    const { error: logError } = await supabase.from('reading_logs').insert([{
+    const logPayload = {
       user_id: user.id,
       fic_id: ficId,
-      status: formData.status,
-      date_started: formData.date_started,
-      date_finished: formData.date_finished || null,
-      reread_dates: formData.reread_dates,
-      current_chapter: parseInt(formData.current_chapter, 10) || null,
-      notes: formData.notes,
-    }]);
+      status,
+      shelves: updatedShelves,
+      date_started: finalDateStarted,
+      date_finished: finalDateFinished,
+      current_chapter: status === 'currently_reading' ? currentChapter : null,
+      notes: status === 'read' ? notes : null,
+      reread_dates,
+    };
 
-    if (logError) throw logError;
+    let response;
+    if (readingLog) {
+      response = await supabase
+        .from('reading_logs')
+        .update({ ...logPayload, updated_at: new Date().toISOString() })
+        .eq('id', readingLog.id);
+    } else {
+      response = await supabase
+        .from('reading_logs')
+        .insert({ ...logPayload, created_at: new Date().toISOString() });
+    }
 
-    alert('Fic logged successfully!');
-    setFormData(initialFormState);
+    if (response.error) {
+      console.error('Error saving log:', response.error);
+      return;
+    }
 
-  } catch (err) {
-    console.error('Error submitting fic:', err);
-    alert('Failed to log fic.');
-  }
-};
+    try {
+      await supabase.from('shelf_fic').delete().eq('fic_id', ficId);
+      const inserts = [];
+      for (const shelfId of updatedShelves) {
+        const { data: maxPosData, error: maxPosError } = await supabase
+          .from('shelf_fic')
+          .select('position')
+          .eq('shelf_id', shelfId)
+          .order('position', { ascending: false })
+          .limit(1)
+          .single();
 
+        if (maxPosError && maxPosError.code !== 'PGRST116') {
+          console.error('Error fetching max position:', maxPosError);
+          continue;
+        }
+
+        const nextPosition = maxPosData ? maxPosData.position + 1 : 1;
+
+        inserts.push({ shelf_id: shelfId, fic_id: ficId, position: nextPosition });
+      }
+
+      const { error } = await supabase.from('shelf_fic').insert(inserts);
+      if (error) console.error('Error updating shelf_fic links:', error);
+
+      if (shareUpdate) {
+        const postText = generatePostText();
+        const { error: postError } = await supabase.from('posts').insert({
+          user_id: user.id,
+          fic_id: ficId,
+          shelf_id: null,
+          text: postText,
+          created_at: new Date().toISOString(),
+        });
+        if (postError) console.error('Error creating post:', postError);
+      }
+
+      alert('Reading log and shelf links saved!');
+      navigate('/bookshelf');
+    } catch (err) {
+      console.error('Error syncing shelf_fic:', err);
+    }
+  };
+
+  if (!fic || !archiveShelfId) return <div>Loading...</div>;
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label>Link</label>
-      <input
-        type="text"
-        value={formData.link}
-        onChange={(e) =>
-          handleChange('link', e.target.value.replace(/^https?:\/\/(www\.)?/, ''))
-        }
-      />
+    <div className="max-w-2xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">{fic.title}</h1>
+      {rereadCount > 0 && (
+        <p className="text-gray-600 mb-2">
+          You’ve read this {rereadCount} time{rereadCount > 1 && 's'}.
+        </p>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <label className="block">
+          <span>Status</span>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className="block mt-1 border">
+            {READING_STATUS_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option.replace('_', ' ')}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <label>Title</label>
-      <input
-        type="text"
-        value={formData.title}
-        onChange={(e) => handleChange('title', e.target.value)}
-      />
+        <label className="block">
+          <input
+            type="checkbox"
+            checked={shareUpdate}
+            onChange={(e) => setShareUpdate(e.target.checked)}
+          />{' '}
+          Share this update as a post
+        </label>
 
-      <label>Author</label>
-      <input
-        type="text"
-        value={formData.author}
-        onChange={(e) => handleChange('author', e.target.value)}
-      />
+        <fieldset>
+          <legend className="font-medium">Shelves</legend>
+          {allShelves.filter((shelf) => shelf.id !== archiveShelfId).map((shelf) => (
+            <label key={shelf.id} className="block">
+              <input
+                type="checkbox"
+                value={shelf.id}
+                checked={shelves.includes(shelf.id)}
+                onChange={handleShelfChange}
+              />{' '}
+              {shelf.title}
+            </label>
+          ))}
+        </fieldset>
 
-      <label>Summary</label>
-      <textarea
-        value={formData.summary}
-        onChange={(e) => handleChange('summary', e.target.value)}
-      />
+        {status === 'currently_reading' && (
+          <>
+            <label className="block">
+              <span>Date Started</span>
+              <input
+                type="date"
+                value={dateStarted}
+                onChange={(e) => setDateStarted(e.target.value)}
+                className="block mt-1 border"
+              />
+            </label>
 
-      <label>Rating</label>
-      <ReactSelect
-        options={[
-          { value: 'General Audiences', label: 'General Audiences' },
-          { value: 'Teen And Up Audiences', label: 'Teen And Up Audiences' },
-          { value: 'Mature', label: 'Mature' },
-          { value: 'Explicit', label: 'Explicit' },
-          { value: 'Not Rated', label: 'Not Rated' },
-        ]}
-        value={
-          formData.rating
-            ? { value: formData.rating, label: formData.rating }
-            : null
-        }
-        onChange={(option) => handleChange('rating', option?.value || '')}
-      />
-
-      <label>Archive Warnings</label>
-      <ReactSelect
-        isMulti
-        options={[
-          { value: 'Choose Not To Use Archive Warnings', label: 'Choose Not To Use Archive Warnings' },
-          { value: 'No Archive Warnings Apply', label: 'No Archive Warnings Apply' },
-          { value: 'Graphic Depictions Of Violence', label: 'Graphic Depictions Of Violence' },
-          { value: 'Major Character Death', label: 'Major Character Death' },
-          { value: 'Rape/Non-Con', label: 'Rape/Non-Con' },
-          { value: 'Underage', label: 'Underage' },
-        ]}
-        value={formData.archive_warning.map((val) => ({ value: val, label: val }))}
-        onChange={(options) =>
-          handleChange(
-            'archive_warning',
-            (options || []).map((o) => o.value)
-          )
-        }
-      />
-
-      <label>Category</label>
-      <ReactSelect
-        options={[
-          { value: 'F/F', label: 'F/F' },
-          { value: 'F/M', label: 'F/M' },
-          { value: 'Gen', label: 'Gen' },
-          { value: 'M/M', label: 'M/M' },
-          { value: 'Multi', label: 'Multi' },
-          { value: 'Other', label: 'Other' },
-          { value: 'Not Categorized', label: 'Not Categorized' },
-        ]}
-        value={
-          formData.category
-            ? { value: formData.category, label: formData.category }
-            : null
-        }
-        onChange={(option) => handleChange('category', option?.value || '')}
-      />
-
-      <label>Fandoms</label>
-      <AsyncCreatableSelect
-        isMulti
-        cacheOptions
-        defaultOptions
-        loadOptions={(inputValue) => loadOptions('fandoms', inputValue)}
-        onChange={(selected) => handleChange('fandoms', selected || [])}
-        value={formData.fandoms}
-      />
-
-      <label>Relationships</label>
-      <AsyncCreatableSelect
-        isMulti
-        cacheOptions
-        defaultOptions
-        loadOptions={(inputValue) => loadOptions('relationships', inputValue)}
-        onChange={(selected) => handleChange('relationships', selected || [])}
-        value={formData.relationships}
-      />
-
-      <label>Characters</label>
-      <AsyncCreatableSelect
-        isMulti
-        cacheOptions
-        defaultOptions
-        loadOptions={(inputValue) => loadOptions('characters', inputValue)}
-        onChange={(selected) => handleChange('characters', selected || [])}
-        value={formData.characters}
-      />
-
-      <label>Additional Tags</label>
-      <AsyncCreatableSelect
-        isMulti
-        cacheOptions
-        defaultOptions
-        loadOptions={(inputValue) => loadOptions('tags', inputValue)}
-        onChange={(selected) => handleChange('tags', selected || [])}
-        value={formData.tags}
-      />
-
-      <label>Words</label>
-      <input
-        type="number"
-        value={formData.words}
-        onChange={(e) => handleChange('words', e.target.value)}
-      />
-
-      <label>Chapters</label>
-      <input
-        type="text"
-        value={formData.chapters}
-        onChange={(e) => handleChange('chapters', e.target.value)}
-      />
-
-      <label>Hits</label>
-      <input
-        type="number"
-        value={formData.hits}
-        onChange={(e) => handleChange('hits', e.target.value)}
-      />
-
-      <label>Kudos</label>
-      <input
-        type="number"
-        value={formData.kudos}
-        onChange={(e) => handleChange('kudos', e.target.value)}
-      />
-
-      {/* Shelves */}
-      <label>Shelves</label>
-      <ReactSelect
-        isMulti
-        options={shelfOptions.filter((shelf) => shelf.label !== 'Archive')}
-        value={shelfOptions.filter((shelf) =>
-          formData.shelves.includes(shelf.value)
+            <label className="block">
+              <span>Current Chapter</span>
+              <input
+                type="text"
+                value={currentChapter}
+                onChange={(e) => setCurrentChapter(e.target.value)}
+                className="block mt-1 border"
+              />
+            </label>
+          </>
         )}
-        onChange={(selected) =>
-          handleChange(
-            'shelves',
-            (selected || []).map((s) => s.value)
-          )
-        }
-      />
 
-      {/* Status Selection */}
-      <label>Status</label>
-      <ReactSelect
-        options={[
-          { value: 'tbr', label: 'To Be Read' },
-          { value: 'currently_reading', label: 'Currently Reading' },
-          { value: 'read', label: 'Read' },
-        ]}
-        value={
-          formData.status
-            ? {
-                value: formData.status,
-                label: formData.status
-                  .replace('_', ' ')
-                  .replace(/\b\w/g, (c) => c.toUpperCase()),
-              }
-            : null
-        }
-        onChange={(option) => handleChange('status', option?.value || '')}
-      />
+        {status === 'read' && (
+          <>
+            <label className="block">
+              <span>Date Finished</span>
+              <input
+                type="date"
+                value={dateFinished}
+                onChange={(e) => setDateFinished(e.target.value)}
+                className="block mt-1 border"
+              />
+            </label>
 
-      {(formData.status === 'currently_reading' || formData.status === 'read') && (
-  <>
-    <label>Date Started</label>
-    <input
-      type="date"
-      value={formData.date_started}
-      onChange={(e) => handleChange('date_started', e.target.value)}
-    />
-  </>
-)}
+            <label className="block">
+              <span>Notes</span>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="block mt-1 border w-full"
+              ></textarea>
+            </label>
+          </>
+        )}
 
-{formData.status === 'currently_reading' && (
-  <>
-    <label>Reread Dates</label>
-    <input
-      type="text"
-      placeholder="Comma-separated dates (YYYY-MM-DD)"
-      value={formData.reread_dates.join(', ') || ''}
-      onChange={(e) =>
-        handleChange(
-          'reread_dates',
-          e.target.value
-            .split(',')
-            .map((d) => d.trim())
-            .filter((d) => d)
-        )
-      }
-    />
-    <label>Current Chapter</label>
-    <input
-      type="text"
-      value={formData.current_chapter}
-      onChange={(e) => handleChange('current_chapter', e.target.value)}
-    />
-  </>
-)}
-
-{formData.status === 'read' && (
-  <>
-    <label>Date Finished</label>
-    <input
-      type="date"
-      value={formData.date_finished}
-      onChange={(e) => handleChange('date_finished', e.target.value)}
-    />
-
-    <label>Notes</label>
-    <textarea
-      value={formData.notes}
-      onChange={(e) => handleChange('notes', e.target.value)}
-    />
-  </>
-)}
-
-      <button type="submit">Log Fic</button>
-    </form>
+        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
+          Save Log
+        </button>
+      </form>
+    </div>
   );
-};
-
-export default LogFic;
-
+}

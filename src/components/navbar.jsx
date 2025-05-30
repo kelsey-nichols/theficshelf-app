@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 const tabs = [
   { id: 'bookshelf', icon: LibraryBig, label: 'Bookshelf', path: '/bookshelf' },
   { id: 'discover', icon: Search, label: 'Discover', path: '/discover' },
-  { id: 'log-fic', icon: BookmarkPlus, label: 'LogFic', path: '/log-fic' },
+  { id: 'add-fic', icon: BookmarkPlus, label: 'AddFic', path: '/add-fic' },
   { id: 'feed', icon: Newspaper, label: 'Feed', path: '/feed' },
   { id: 'user', icon: User, label: 'User', path: '/user' },
 ];
