@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
-import { ChevronRight, ChevronLeft, MoreVertical } from "lucide-react"; //
+import { ChevronRight, ChevronLeft, MoreVertical, Bookmark, BookmarkCheck } from "lucide-react"; //
 
 const ShelfPage = () => {
   const { shelfId } = useParams();
@@ -15,6 +15,7 @@ const ShelfPage = () => {
   const [profile, setProfile] = useState(null);
   const [fandoms, setFandoms] = useState([]);
   const [relationships, setRelationships] = useState([]);
+  const [bookmarkedShelves, setBookmarkedShelves] = useState(new Set());
   const [tags, setTags] = useState([]);
   const [fics, setFics] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -143,6 +144,78 @@ const ShelfPage = () => {
   if (loading) return <p>Loading shelf details...</p>;
   if (!shelf) return <p>Shelf not found.</p>;
 
+  const fetchBookmarkedShelves = async () => {
+    const { data: userData, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error("Error getting user:", error);
+    return;
+  }
+
+
+  const user = userData?.user;
+    if (!user) return;
+
+
+      const { data } = await supabase
+        .from("bookmarked_shelves")
+        .select("shelf_id")
+        .eq("user_id", user.id);
+
+
+      if (error) {
+        console.error("Error fetching bookmarked shelves:", error);
+        return;
+      }
+
+
+    setBookmarkedShelves(new Set(data.map((b) => b.shelf_id)));
+  };
+
+
+  const toggleBookmark = async (shelfId, shelfOwnerId) => {
+  const { data: userData, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error("Error getting user:", error);
+    return;
+  }
+
+  const user = userData?.user;
+  if (!user) return;
+
+  // Prevent bookmarking own shelf
+  if (user.id === shelfOwnerId) {
+    console.warn("You cannot bookmark your own shelf.");
+    return;
+  }
+
+  const isBookmarked = bookmarkedShelves.has(shelfId);
+
+  if (isBookmarked) {
+    const { error } = await supabase
+      .from("bookmarked_shelves")
+      .delete()
+      .eq("shelf_id", shelfId)
+      .eq("user_id", user.id);
+
+    if (!error) {
+      setBookmarkedShelves((prev) => {
+        const updated = new Set(prev);
+        updated.delete(shelfId);
+        return updated;
+      });
+    }
+  } else {
+    const { error } = await supabase
+      .from("bookmarked_shelves")
+      .insert([{ user_id: user.id, shelf_id: shelfId }]);
+
+    if (!error) {
+      setBookmarkedShelves((prev) => new Set(prev).add(shelfId));
+    }
+  }
+};
+
+
   const CollapsibleSection = ({ title, items, open, onToggle, emptyMessage }) => {
     return (
       <div
@@ -216,57 +289,66 @@ const ShelfPage = () => {
       >
         <ChevronLeft size={30} color="#202d26" />
       </button>
+      <div style={{ position: "absolute", top: "1rem", right: "1rem", zIndex: 1000 }}>
+  <div style={{ position: "relative", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+    <button
+    onClick={() => toggleBookmark(shelf.id, shelf.user_id)}
+    style={{ background: "transparent", border: "none", cursor: "pointer" }}
+  >
+    {bookmarkedShelves.has(shelf.id) ? <BookmarkCheck /> : <Bookmark />}
+  </button>
 
-      {/* Share Shelf vertical menu */}
-      <div style={{ position: "absolute", top: "1rem", right: "1rem" }}>
+    <button
+      onClick={toggleMenu}
+      aria-label="Open shelf actions menu"
+      style={{
+        background: "transparent",
+        border: "none",
+        color: "#d5baa9",
+        cursor: "pointer",
+      }}
+    >
+      <MoreVertical size={20} color="#202d26" />
+    </button>
+
+    {menuOpen && (
+      <div
+        style={{
+          position: "absolute",
+          top: "100%",
+          right: 0,
+          backgroundColor: "#1a1a1a",
+          border: "1px solid #333",
+          borderRadius: "4px",
+          padding: "0.5rem",
+          marginTop: "0.25rem",
+          zIndex: 1000,
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.5rem",
+          minWidth: "150px",
+        }}
+      >
         <button
-          onClick={toggleMenu}
-          aria-label="Open shelf actions menu"
+          onClick={() => navigate("/share-shelf", { state: { shelf } })}
           style={{
-            background: "transparent",
+            backgroundColor: "#0074D9",
+            color: "#fff",
             border: "none",
-            color: "#d5baa9",
+            padding: "0.5rem",
+            borderRadius: "4px",
             cursor: "pointer",
+            fontFamily: "inherit",
           }}
         >
-          <MoreVertical size={20} color="#202d26" />
+          Share Shelf
         </button>
-
-        {menuOpen && (
-          <div
-            style={{
-              position: "absolute",
-              top: "100%",
-              right: 0,
-              backgroundColor: "#1a1a1a",
-              border: "1px solid #333",
-              borderRadius: "4px",
-              padding: "0.5rem",
-              marginTop: "0.25rem",
-              zIndex: 100,
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.5rem",
-              minWidth: "150px",
-            }}
-          >
-            <button
-              onClick={() => navigate("/share-shelf", { state: { shelf } })}
-              style={{
-                backgroundColor: "#0074D9",
-                color: "#fff",
-                border: "none",
-                padding: "0.5rem",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              Share Shelf
-            </button>
-          </div>
-        )}
       </div>
+    )}
+  </div>
+</div>
+       
+      
 
       {/* Shelf Info Block */}
       <div
