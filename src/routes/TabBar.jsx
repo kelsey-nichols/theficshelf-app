@@ -5,8 +5,10 @@ const TabBar = ({ tabs, activeTab, onTabChange }) => {
     <div
       style={{
         display: "flex",
-        borderBottom: "2px solid #d5baa9",
-        marginBottom: "1rem",
+        borderBottom: "2px solid #d3b7a4",
+        backgroundColor: "#d3b7a4",
+        fontFamily: "serif",
+        userSelect: "none",
       }}
       role="tablist"
       aria-label="Fiction tabs"
@@ -23,15 +25,17 @@ const TabBar = ({ tabs, activeTab, onTabChange }) => {
             id={`tab-${id}`}
             onClick={() => onTabChange(id)}
             style={{
+              flex: 1, // Evenly split width
               cursor: "pointer",
               border: "none",
-              borderBottom: isActive ? "3px solid #d5baa9" : "3px solid transparent",
-              backgroundColor: "transparent",
-              padding: "0.5rem 1rem",
-              color: isActive ? "#d5baa9" : "#9e9e9e",
+              backgroundColor: isActive ? "#202d26" : "transparent",
+              color: isActive ? "#d3b7a4" : "#202d26",
+              padding: "0.75rem 0",
               fontSize: "1rem",
               fontWeight: isActive ? "600" : "400",
-              transition: "color 0.2s, border-bottom-color 0.2s",
+              textAlign: "center",
+              transition: "background-color 0.3s, color 0.3s",
+              minWidth: 0, // Prevent overflow on small screens
             }}
           >
             {label}

@@ -24,6 +24,7 @@ import AddFic from "./routes/AddFic";
 import ShareFicPage from "./routes/ShareFic";
 import ShareShelfPage from "./routes/ShareShelf";
 import EditFic from "./routes/EditFic";
+import PublicProfile from "./routes/PublicProfile";
 
 export const router = createBrowserRouter([
   {
@@ -69,15 +70,16 @@ export const router = createBrowserRouter([
           { path : "/share-fic", element: <ShareFicPage /> },
           { path : "/share-shelf", element: <ShareShelfPage /> },
           { path : "/edit-fic/:ficId", element: <EditFic /> },
+          { path: "user/:username", element: <PublicProfile /> },
 
-          // ✅ Nested user routes using UserLayout
+
           {
             path: "user",
-            element: <UserLayout />, // Your new layout
+            element: <UserLayout />, 
             children: [
               { index: true, element: <UserProfile /> },
               { path: "bookmarked-shelves", element: <BookmarkedShelves /> },
-              // Add more user subroutes here
+
             ],
           },
         ],
