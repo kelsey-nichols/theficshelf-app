@@ -2,8 +2,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../supabaseClient";
+import { differenceInDays, formatDistanceToNow } from "date-fns";
 import TabBar from "./TabBar"; 
-
 
 
 const CollapsibleSection = ({ title, items, emptyMessage }) => {
@@ -55,7 +55,6 @@ const CollapsibleSection = ({ title, items, emptyMessage }) => {
   );
 };
 
-// Component to display current user's posts for this fic
 const UserPosts = ({ ficId, userId }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,52 +64,106 @@ const UserPosts = ({ ficId, userId }) => {
 
     const fetchUserPosts = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data: postsData, error: postsError } = await supabase
         .from("posts")
         .select("*")
         .eq("fic_id", ficId)
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching user posts:", error);
+      if (postsError) {
+        console.error("Error fetching user posts:", postsError);
         setPosts([]);
-      } else {
-        setPosts(data);
+        setLoading(false);
+        return;
       }
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("id, username, display_name")
+        .eq("id", userId)
+        .single();
+
+      const { data: ficData } = await supabase
+        .from("fics")
+        .select("id, title, author")
+        .eq("id", ficId)
+        .single();
+
+      const enrichedPosts = postsData.map((post) => ({
+        ...post,
+        user: profileData,
+        fic: ficData,
+      }));
+
+      setPosts(enrichedPosts);
       setLoading(false);
     };
 
     fetchUserPosts();
   }, [ficId, userId]);
 
+  const formatPostText = (post) => {
+    const { text, fic } = post;
+
+    if (text.includes("[fic]") && fic) {
+      const parts = text.split("[fic]");
+      return (
+        <p className="mt-2 whitespace-pre-wrap">
+          {parts.map((part, index) => (
+            <span key={index}>
+              {part}
+              {index < parts.length - 1 && (
+                <a
+                  href={`/fic/${fic.id}`}
+                  className="inline-block bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-lg mx-1"
+                >
+                  📖 {fic.title} by {fic.author}
+                </a>
+              )}
+            </span>
+          ))}
+        </p>
+      );
+    }
+
+    return <p className="mt-2 whitespace-pre-wrap">{text}</p>;
+  };
+
+  const renderPostHeader = (post) => {
+    const name = post.user?.display_name || "Unknown";
+    const handle = post.user?.username || "user";
+    const time = formatDistanceToNow(new Date(post.created_at), {
+      addSuffix: true,
+    });
+
+    return (
+      <div className="text-sm text-gray-500">
+        <span className="font-semibold text-black">{name}</span>{" "}
+        <span className="text-gray-400">@{handle}</span> · {time}
+      </div>
+    );
+  };
+
   if (loading) return <p>Loading your posts...</p>;
   if (posts.length === 0) return <p>No posts found for this fic.</p>;
 
   return (
-    <div>
+    <div className="max-w-xl mx-auto px-4 py-6">
       {posts.map((post) => (
         <div
           key={post.id}
-          style={{
-            backgroundColor: "#202d26",
-            color: "#d5baa9",
-            padding: "1rem",
-            marginBottom: "1rem",
-            borderRadius: "6px",
-          }}
+          className="mb-6 border-b pb-4 border-gray-200 last:border-0"
         >
-          <p style={{ marginBottom: "0.5rem" }}>{post.content}</p>
-          <small>
-            Posted on {new Date(post.created_at).toLocaleString()}
-          </small>
+          {renderPostHeader(post)}
+          {formatPostText(post)}
         </div>
       ))}
     </div>
   );
 };
 
-// Component to display all users' notes on this fic, with pagination
+
 const AllUsersNotes = ({ ficId }) => {
   const PAGE_SIZE = 10;
   const [notes, setNotes] = useState([]);
@@ -119,34 +172,69 @@ const AllUsersNotes = ({ ficId }) => {
   const [hasMore, setHasMore] = useState(true);
 
   const fetchNotes = useCallback(async () => {
-    if (!ficId) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("reading_logs")
-      .select("*")
-      .eq("fic_id", ficId)
-      .order("created_at", { ascending: false })
-      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+  if (!ficId) return;
+  setLoading(true);
 
-    if (error) {
-      console.error("Error fetching notes:", error);
-      setLoading(false);
-      return;
-    }
+  // Step 1: Fetch notes
+  const { data: notesData, error: notesError } = await supabase
+    .from("reading_logs")
+    .select("*")
+    .eq("fic_id", ficId)
+    .order("created_at", { ascending: false })
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-    if (data.length < PAGE_SIZE) {
-      setHasMore(false);
-    }
-
-    setNotes((prev) => [...prev, ...data]);
+  if (notesError) {
+    console.error("Error fetching notes:", notesError);
     setLoading(false);
-  }, [ficId, page]);
+    return;
+  }
+
+  // Filter empty notes
+  const filteredNotes = notesData.filter(
+    (note) => note.notes && note.notes.trim() !== ""
+  );
+
+  // Step 2: Get unique user_ids
+  const userIds = [
+    ...new Set(filteredNotes.map((note) => note.user_id)),
+  ];
+
+  // Step 3: Fetch profiles for these user IDs
+  const { data: profilesData, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, username, display_name")
+    .in("id", userIds);
+
+  if (profilesError) {
+    console.error("Error fetching profiles:", profilesError);
+    setLoading(false);
+    return;
+  }
+
+  // Step 4: Create a map of user_id to profile for quick lookup
+  const profilesMap = {};
+  profilesData.forEach((profile) => {
+    profilesMap[profile.id] = profile;
+  });
+
+  // Step 5: Attach profile info to each note
+  const enrichedNotes = filteredNotes.map((note) => ({
+    ...note,
+    profile: profilesMap[note.user_id] || null,
+  }));
+
+  if (enrichedNotes.length < PAGE_SIZE) {
+    setHasMore(false);
+  }
+
+  setNotes((prev) => [...prev, ...enrichedNotes]);
+  setLoading(false);
+}, [ficId, page]);
 
   useEffect(() => {
     fetchNotes();
   }, [fetchNotes]);
 
-  // Reset on ficId change
   useEffect(() => {
     setNotes([]);
     setPage(1);
@@ -158,27 +246,24 @@ const AllUsersNotes = ({ ficId }) => {
   };
 
   return (
-    <div>
+    <div className="max-w-xl mx-auto px-4 py-6 font-sans text-gray-800">
       {notes.length === 0 && !loading && <p>No notes found.</p>}
+
       {notes.map((note) => (
-        <div
-          key={note.id}
-          style={{
-            backgroundColor: "#202d26",
-            color: "#d5baa9",
-            padding: "1rem",
-            marginBottom: "1rem",
-            borderRadius: "6px",
-            fontFamily: "Georgia, serif",
-            lineHeight: 1.6,
-          }}
-        >
-          <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-            {note.note?.trim() || <em>(No note content)</em>}
+        <div key={note.id} className="mb-6 border-b border-gray-200 pb-4 last:border-0">
+          <p className="whitespace-pre-wrap font-serif text-[#d5baa9] mb-2">
+            {note.notes?.trim() || ""}
           </p>
-          <div style={{ marginTop: "0.5rem", fontSize: "0.875rem", opacity: 0.8 }}>
-            <strong>User:</strong> {note.user_id} <br />
-            <strong>Logged on:</strong> {new Date(note.created_at).toLocaleString()}
+
+          <div className="text-sm text-gray-500">
+            <span className="font-semibold text-black">
+              {note.profile?.display_name || "Unknown"}
+            </span>{" "}
+            <span className="text-gray-400">
+              @{note.profile?.username || "user"}
+            </span>{" "}
+            ·{" "}
+            {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
           </div>
         </div>
       ))}
@@ -188,16 +273,7 @@ const AllUsersNotes = ({ ficId }) => {
       {!loading && hasMore && (
         <button
           onClick={loadMore}
-          style={{
-            backgroundColor: "#1DA1F2",
-            color: "white",
-            border: "none",
-            padding: "0.5rem 1rem",
-            borderRadius: "4px",
-            cursor: "pointer",
-            marginBottom: "1rem",
-            fontFamily: "inherit",
-          }}
+          className="bg-blue-500 hover:bg-blue-600 text-white font-serif px-4 py-2 rounded mb-4 cursor-pointer"
         >
           Load More
         </button>
@@ -298,6 +374,13 @@ const FicPage = () => {
 
     fetchData();
   }, [ficId]);
+
+  const canEditFic = (updatedAt) => {
+    if (!updatedAt) return false;
+    return differenceInDays(new Date(), new Date(updatedAt)) >= 7;
+  };
+
+  const canEdit = fic ? canEditFic(fic.updated_at) : false;
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error}</p>;
@@ -432,11 +515,36 @@ const FicPage = () => {
       >
         Share Fic
       </button>
+
+      <button
+      onClick={() => navigate(`/edit-fic/${fic.id}`, { state: { fic } })}
+      disabled={!canEdit}
+      title={!canEdit ? "You can only edit this fic 7 days after its last update" : ""}
+      style={{
+        backgroundColor: canEdit ? "#FF851B" : "#555",
+        color: "#fff",
+        border: "none",
+        padding: "0.5rem",
+        borderRadius: "4px",
+        cursor: canEdit ? "pointer" : "not-allowed",
+        fontFamily: "inherit",
+      }}
+    >
+      Edit Fic
+    </button>
+
     </div>
   )}
 </div>
 
-        <p style={{ margin: 0, fontStyle: "italic", fontSize: "0.9rem" }}>
+        <p
+          style={{
+            margin: 0,
+            fontStyle: "italic",
+            fontSize: "0.9rem",
+            whiteSpace: "pre-wrap",
+          }}
+        >
           {fic.summary || "No summary provided."}
         </p>
 

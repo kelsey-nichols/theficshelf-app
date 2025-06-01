@@ -184,7 +184,7 @@ const formatPostText = (post) => {
             {part}
             {index < parts.length - 1 && (
               <a
-                href={`/bookshelf/${post.shelf.id}`}
+                href={`/bookshelf/${shelf.id}`}
                 className="inline-block bg-purple-100 text-purple-800 text-sm px-2 py-1 rounded-lg mx-1"
               >
                 🗂️ {shelf.title} by @{user?.username}
