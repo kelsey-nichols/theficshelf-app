@@ -16,9 +16,17 @@ import {
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
+  
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Lock, GripVertical, MoreVertical, Plus, Trash2 } from "lucide-react";
+import {
+  Lock,
+  GripVertical,
+  Ellipsis,
+  Plus,
+  Trash2,
+  MoreVertical,
+} from "lucide-react";
 
 const COLORS = {
   moss: "#a7b89e",
@@ -46,7 +54,14 @@ const useOutsideClick = (ref, callback) => {
   }, [ref, callback]);
 };
 
-const SortableShelf = ({ shelf, isPrivate, editing, onColorChange, onDelete, onRename }) => {
+const SortableShelf = ({
+  shelf,
+  isPrivate,
+  editing,
+  onColorChange,
+  onDelete,
+  onRename,
+}) => {
   const {
     attributes,
     listeners,
@@ -91,6 +106,7 @@ const SortableShelf = ({ shelf, isPrivate, editing, onColorChange, onDelete, onR
       style={style}
       className="p-4 rounded-xl shadow-md w-full flex items-center justify-between"
     >
+      {/* LEFT SIDE: Drag handle, title/rename, and lock icon */}
       <div className="flex items-center space-x-2">
         {editing && (
           <div
@@ -98,8 +114,10 @@ const SortableShelf = ({ shelf, isPrivate, editing, onColorChange, onDelete, onR
             {...listeners}
             {...attributes}
             className="cursor-grab touch-none px-2"
+            aria-label="Drag shelf"
           >
-            <GripVertical size={20} className="text-gray-600" />
+            {/* Drag handle icon in edit mode */}
+            <GripVertical size={20} className="text-[#d3b7a4]" />
           </div>
         )}
 
@@ -130,20 +148,32 @@ const SortableShelf = ({ shelf, isPrivate, editing, onColorChange, onDelete, onR
             </h3>
           )
         ) : (
-          <h3 className="text-xl font-semibold">{shelf.title}</h3>
+          // NON-EDIT MODE: title is #d3b7a4
+          <h3 className="text-xl font-semibold text-[#d3b7a4]">
+            {shelf.title}
+          </h3>
         )}
 
-        {isPrivate && <Lock size={18} className="text-gray-600" />}
+        {isPrivate && (
+          // Lock icon: gray when editing, #d3b7a4 otherwise
+          <Lock
+            size={18}
+            className={editing ? "text-gray-600" : "text-[#d3b7a4]"}
+          />
+        )}
       </div>
 
+      {/* RIGHT SIDE: Color picker dropdown + delete button */}
       <div className="flex items-center space-x-2">
         {editing && (
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen((o) => !o)}
               className="p-1 rounded hover:bg-gray-200"
+              aria-label="Open color menu"
             >
-              <MoreVertical size={20} />
+              {/* Ellipsis icon colored #d3b7a4 */}
+              <MoreVertical size={20} className="text-[#d3b7a4]" />
             </button>
 
             {dropdownOpen && (
@@ -175,16 +205,17 @@ const SortableShelf = ({ shelf, isPrivate, editing, onColorChange, onDelete, onR
             onClick={() => !isArchive && onDelete(shelf.id)}
             disabled={isArchive}
             className={`p-1 rounded hover:bg-red-100 ${
-              isArchive ? "opacity-50 cursor-not-allowed" : "hover:text-red-600"
+              isArchive ? "opacity-50 cursor-not-allowed" : ""
             }`}
+            aria-label="Delete shelf"
           >
-            <Trash2 size={20} />
+            <Trash2 size={20} className="text-[#d3b7a4]" />
           </button>
         )}
       </div>
     </div>
   );
-};
+  };
 
 const NewShelfBox = ({ onClick }) => {
   return (
@@ -198,7 +229,7 @@ const NewShelfBox = ({ onClick }) => {
         }
       }}
       className="p-4 rounded-xl shadow-md w-full flex items-center justify-center cursor-pointer border border-dashed border-gray-400 hover:bg-gray-100 transition max-w-md mx-auto mb-3"
-      style={{ height: "72px" }} // roughly same height as shelves
+      style={{ height: "72px" }}
       aria-label="Create new shelf"
     >
       <Plus size={32} className="text-gray-500" />
@@ -212,6 +243,9 @@ const Bookshelf = () => {
   const [shelves, setShelves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+
+  // State to toggle the top‐right ellipsis menu
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -250,7 +284,7 @@ const Bookshelf = () => {
     const newOrder = arrayMove(shelves, oldIndex, newIndex);
     setShelves(newOrder);
 
-    // Update DB order in parallel
+    // Update DB sort_order
     await Promise.all(
       newOrder.map((shelf, index) =>
         supabase.from("shelves").update({ sort_order: index }).eq("id", shelf.id)
@@ -276,13 +310,13 @@ const Bookshelf = () => {
   };
 
   const handleRename = async (shelfId, newTitle) => {
-  setShelves((prev) =>
-    prev.map((shelf) =>
-      shelf.id === shelfId ? { ...shelf, title: newTitle } : shelf
-    )
-  );
+    setShelves((prev) =>
+      prev.map((shelf) =>
+        shelf.id === shelfId ? { ...shelf, title: newTitle } : shelf
+      )
+    );
 
-  const { error } = await supabase
+    const { error } = await supabase
       .from("shelves")
       .update({ title: newTitle })
       .eq("id", shelfId);
@@ -293,20 +327,18 @@ const Bookshelf = () => {
   };
 
   const handleDelete = async (shelfId) => {
-  const confirmed = window.confirm(
-    "Are you sure you want to delete this shelf and all the fics stored within it? This action cannot be undone."
-  );
-  if (!confirmed) return;
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this shelf and all the fics stored within it? This action cannot be undone."
+    );
+    if (!confirmed) return;
 
-  // Remove from local state immediately
-  setShelves((prev) => prev.filter((shelf) => shelf.id !== shelfId));
+    setShelves((prev) => prev.filter((shelf) => shelf.id !== shelfId));
 
-  // Delete from DB
-  const { error } = await supabase.from("shelves").delete().eq("id", shelfId);
-  if (error) {
-    console.error("Failed to delete shelf:", error);
-  }
-};
+    const { error } = await supabase.from("shelves").delete().eq("id", shelfId);
+    if (error) {
+      console.error("Failed to delete shelf:", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -317,21 +349,37 @@ const Bookshelf = () => {
   }
 
   return (
-    <div className="min-h-screen px-6 py-8 bg-[#d3b7a4]">
+    <div className="min-h-screen px-6 py-8 bg-[#d3b7a4] font-serif">
       <div className="flex justify-between items-center mb-6 max-w-md mx-auto">
-        <h1 className="text-3xl font-bold text-[#202d26]">Your Bookshelf</h1>
-        <button
-          onClick={() => setEditing(!editing)}
-          className="text-sm text-[#202d26] underline hover:text-[#886146]"
-          aria-pressed={editing}
-        >
-          {editing ? "Done" : "Edit"}
-        </button>
-      </div>
+        <h1 className="text-4xl  font-bold text-[#202d26]">bookshelf</h1>
 
-      <h2 className="text-lg text-[#886146] mb-4 max-w-md mx-auto">
-        Welcome, {session?.user?.email}
-      </h2>
+        {/* REPLACE “Edit” text-button with an Ellipsis menu */}
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            className="p-1 rounded hover:bg-gray-200"
+            aria-label="Open bookshelf menu"
+          >
+            <Ellipsis size={24} className="text-[#202d26]" />
+          </button>
+
+          {menuOpen && (
+            <ul className="absolute right-0 mt-2 w-32 bg-white rounded shadow-lg z-10 border border-gray-200">
+              <li>
+                <button
+                  onClick={() => {
+                    setEditing((prev) => !prev);
+                    setMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                >
+                  {editing ? "Done" : "Edit"}
+                </button>
+              </li>
+            </ul>
+          )}
+        </div>
+      </div>
 
       {editing ? (
         <DndContext
@@ -364,21 +412,26 @@ const Bookshelf = () => {
         <div className="flex flex-col space-y-3 max-w-md mx-auto">
           {shelves.map((shelf) => (
             <div
-  key={shelf.id}
-  className="p-4 rounded-xl shadow-md w-full flex items-center justify-between cursor-pointer"
-  style={{ backgroundColor: shelf.color || "#fff" }}
-  role="button"
-  tabIndex={0}
-  onClick={() => navigate(`/bookshelf/${shelf.id}`)}
-  onKeyDown={(e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      navigate(`/bookshelf/${shelf.id}`);
-    }
-  }}
->
-  <h3 className="text-xl font-semibold">{shelf.title}</h3>
-  {shelf.is_private && <Lock size={18} className="text-gray-600" />}
-</div>
+              key={shelf.id}
+              className="p-4 rounded-xl shadow-md w-full flex items-center justify-between cursor-pointer"
+              style={{ backgroundColor: shelf.color || "#fff" }}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(`/bookshelf/${shelf.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  navigate(`/bookshelf/${shelf.id}`);
+                }
+              }}
+            >
+              {/* Shelf title now uses #d3b7a4 */}
+              <h3 className="text-xl font-semibold text-[#d3b7a4]">
+                {shelf.title}
+              </h3>
+              {shelf.is_private && (
+                <Lock size={18} className="text-[#d3b7a4]" />
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -387,3 +440,4 @@ const Bookshelf = () => {
 };
 
 export default Bookshelf;
+

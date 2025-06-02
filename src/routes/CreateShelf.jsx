@@ -1,54 +1,93 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import AsyncCreatableSelect from "react-select/async-creatable";
 import { useNavigate } from "react-router-dom";
 import { UserAuth } from "../context/AuthContext";
 import { supabase } from "../supabaseClient";
+
+// Predefined color options
+const COLORS = {
+  moss: "#a7b89e",
+  olive: "#4a5c46",
+  sky: "#acc5c7",
+  storm: "#6d8b8d",
+  winkle: "#95a9c4",
+  cocoa: "#442d1d",
+  caramel: "#84592c",
+  "spiced wine": "#733015",
+  pumpkin: "#956241",
+  "dusty rose": "#995643",
+  grey: "#464c48",
+};
+
+// Map Supabase rows to { value, label } for react-select
+const mapToOptions = (data) =>
+  data.map((item) => ({ value: item.id, label: item.name || item.title }));
 
 const CreateShelf = () => {
   const { session } = UserAuth();
   const navigate = useNavigate();
 
+  // Form state
   const [title, setTitle] = useState("");
-  const [color, setColor] = useState("#a7b89e");
+  const [color, setColor] = useState(COLORS.moss);
   const [isPrivate, setIsPrivate] = useState(false);
-  const [fandomsInput, setFandomsInput] = useState("");
-  const [relationshipsInput, setRelationshipsInput] = useState("");
-  const [tagsInput, setTagsInput] = useState("");
+
+  // Instead of comma-separated strings, we store arrays of { value, label }
+  const [fandoms, setFandoms] = useState([]); // e.g. [{ value: 3, label: "Harry Potter" }, ...]
+  const [relationships, setRelationships] = useState([]);
+  const [tags, setTags] = useState([]);
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Helper function to process entries
-  const processEntries = async (entries, tableName) => {
+  // Load existing entries from Supabase for a given table
+  const loadOptions = async (table, inputValue) => {
+    if (!inputValue) return [];
+    const { data, error } = await supabase
+      .from(table)
+      .select("id, name")
+      .ilike("name", `%${inputValue}%`)
+      .limit(20);
+
+    if (error || !data) {
+      console.error(`Error loading ${table}:`, error);
+      return [];
+    }
+    return mapToOptions(data);
+  };
+
+  // Given an array of selected options, get or create each entry in the specified table,
+  // then return an array of their IDs
+  const getOrCreateEntries = async (table, values) => {
+    // values: e.g. [{ value: 3, label: "Harry Potter" }, "Twilight", ...]
+    const names = values.map((v) => (typeof v === "string" ? v : v.label));
     const ids = [];
 
-    for (const name of entries) {
-      // Check if the entry exists
+    for (const name of names) {
+      // See if a row already exists (case-insensitive match)
       const { data: existing, error: selectError } = await supabase
-        .from(tableName)
+        .from(table)
         .select("id")
-        .eq("name", name)
-        .single();
+        .ilike("name", name)
+        .limit(1);
 
       if (selectError && selectError.code !== "PGRST116") {
-        // If error is not 'No rows found', handle it
-        console.error(`Error checking ${tableName}:`, selectError);
         throw selectError;
       }
 
-      if (existing) {
-        ids.push(existing.id);
+      if (existing && existing.length > 0) {
+        ids.push(existing[0].id);
       } else {
-        // Insert the new entry
+        // Insert a new row and grab its ID
         const { data: inserted, error: insertError } = await supabase
-          .from(tableName)
-          .insert({ name })
-          .select()
+          .from(table)
+          .insert([{ name }])
+          .select("id")
           .single();
 
         if (insertError) {
-          console.error(`Error inserting into ${tableName}:`, insertError);
           throw insertError;
         }
-
         ids.push(inserted.id);
       }
     }
@@ -62,7 +101,7 @@ const CreateShelf = () => {
     setError("");
 
     try {
-      // Insert the shelf
+      // 1) Create the shelf row
       const { data: shelfData, error: shelfError } = await supabase
         .from("shelves")
         .insert({
@@ -72,7 +111,7 @@ const CreateShelf = () => {
           is_private: isPrivate,
           sort_order: 9999,
         })
-        .select()
+        .select("id")
         .single();
 
       if (shelfError) {
@@ -81,30 +120,18 @@ const CreateShelf = () => {
         setSaving(false);
         return;
       }
-
       const shelfId = shelfData.id;
 
-      // Process inputs
-      const fandoms = fandomsInput
-        .split(",")
-        .map((f) => f.trim())
-        .filter(Boolean);
-      const relationships = relationshipsInput
-        .split(",")
-        .map((r) => r.trim())
-        .filter(Boolean);
-      const tags = tagsInput
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
+      // 2) Get or create IDs for fandoms, relationships, tags
+      const fandomIds = await getOrCreateEntries("fandoms", fandoms);
+      const relationshipIds = await getOrCreateEntries(
+        "relationships",
+        relationships
+      );
+      const tagIds = await getOrCreateEntries("tags", tags);
 
-      // Process and associate entries
-      const fandomIds = await processEntries(fandoms, "fandoms");
-      const relationshipIds = await processEntries(relationships, "relationships");
-      const tagIds = await processEntries(tags, "tags");
-
-      // Associate fandoms
-      if (fandomIds.length > 0) {
+      // 3) Associate each ID in the join tables
+      if (fandomIds.length) {
         const shelfFandoms = fandomIds.map((fandom_id) => ({
           shelf_id: shelfId,
           fandom_id,
@@ -113,32 +140,26 @@ const CreateShelf = () => {
           .from("shelf_fandoms")
           .insert(shelfFandoms);
         if (sfError) {
-          console.error("Error inserting shelf_fandoms:", sfError);
-          setError("Failed to associate fandoms.");
-          setSaving(false);
-          return;
+          throw sfError;
         }
       }
 
-      // Associate relationships
-      if (relationshipIds.length > 0) {
-        const shelfRelationships = relationshipIds.map((relationship_id) => ({
-          shelf_id: shelfId,
-          relationship_id,
-        }));
+      if (relationshipIds.length) {
+        const shelfRelationships = relationshipIds.map(
+          (relationship_id) => ({
+            shelf_id: shelfId,
+            relationship_id,
+          })
+        );
         const { error: srError } = await supabase
           .from("shelf_relationships")
           .insert(shelfRelationships);
         if (srError) {
-          console.error("Error inserting shelf_relationships:", srError);
-          setError("Failed to associate relationships.");
-          setSaving(false);
-          return;
+          throw srError;
         }
       }
 
-      // Associate tags
-      if (tagIds.length > 0) {
+      if (tagIds.length) {
         const shelfTags = tagIds.map((tag_id) => ({
           shelf_id: shelfId,
           tag_id,
@@ -147,14 +168,11 @@ const CreateShelf = () => {
           .from("shelf_tags")
           .insert(shelfTags);
         if (stError) {
-          console.error("Error inserting shelf_tags:", stError);
-          setError("Failed to associate tags.");
-          setSaving(false);
-          return;
+          throw stError;
         }
       }
 
-      // Navigate to bookshelf
+      // 4) Done! Navigate back to the main bookshelf
       navigate("/bookshelf");
     } catch (err) {
       console.error("Unexpected error:", err);
@@ -166,110 +184,250 @@ const CreateShelf = () => {
 
   return (
     <div className="min-h-screen px-6 py-8 bg-[#d3b7a4]">
-      <div className="max-w-md mx-auto bg-white rounded-xl shadow-md p-6 space-y-6">
-        <h1 className="text-2xl font-bold text-[#202d26]">Create a New Shelf</h1>
+      <div className="max-w-md mx-auto bg-[#886146] rounded-xl shadow-md p-6 space-y-6">
+        <h1 className="text-2xl font-bold text-[#d3b7a4] text-center">
+          create a new shelf
+        </h1>
 
         {error && <p className="text-red-600">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Title */}
+          {/* Shelf Title */}
           <div>
-            <label htmlFor="title" className="block font-medium text-gray-700">
-              Shelf Title
-            </label>
-            <input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-            />
-          </div>
-
-          {/* Color */}
-          <div>
-            <label htmlFor="color" className="block font-medium text-gray-700 mb-2">
-              Shelf Color (hex code)
-            </label>
-            <input
-              id="color"
-              type="text"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              placeholder="#a7b89e"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-            />
-            <div className="mt-2 text-sm text-gray-600">
-              Preview:{" "}
-              <span
-                className="inline-block w-4 h-4 rounded-full"
-                style={{ backgroundColor: color }}
-              ></span>{" "}
-              {color}
+            <div className="flex flex-col mb-4">
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="mt-1 p-3 rounded-full border text-[#886146] placeholder-[#a98c78] w-full"
+                style={{
+                  backgroundColor: "#d3b7a4",
+                  borderColor: "#a98c78",
+                }}
+                placeholder="Enter shelf title"
+              />
             </div>
           </div>
 
-          {/* Private checkbox */}
+          {/* Color Swatches */}
+          <div>
+            <label className="block font-medium text-[#d3b7a4] mb-2">
+              Shelf Color
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {Object.entries(COLORS).map(([name, hex]) => {
+                const isSelected = color === hex;
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setColor(hex)}
+                    className={`
+                      relative h-10 w-10 rounded-full border-2 focus:outline-none
+                      ${isSelected ? "border-black" : "border-gray-200"}
+                    `}
+                    style={{ backgroundColor: hex }}
+                    title={name}
+                  >
+                    {isSelected && (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <div className="h-4 w-4 rounded-full bg-[#d3b7a4]" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-4 text-sm text-[#d3b7a4]">
+              (Click a swatch to choose your shelf’s color)
+            </p>
+          </div>
+
+          {/* Private Checkbox */}
           <div className="flex items-center gap-2">
             <input
-              type="checkbox"
               id="private"
+              type="checkbox"
               checked={isPrivate}
-              onChange={() => setIsPrivate(!isPrivate)}
+              onChange={() => setIsPrivate((prev) => !prev)}
               className="accent-[#886146]"
             />
-            <label htmlFor="private" className="text-sm text-gray-700">
+            <label htmlFor="private" className="text-sm text-[#d3b7a4]">
               Make shelf private
             </label>
           </div>
 
-          {/* Fandoms */}
-          <div>
-            <label htmlFor="fandoms" className="block font-medium text-gray-700">
-              Fandom(s) (optional, comma separated)
+          {/* Fandoms Multi-Select */}
+          <div className="flex flex-col mb-4">
+            <label htmlFor="fandoms" className="block font-medium text-[#d3b7a4] mb-1">
+              Fandom(s) (optional)
             </label>
-            <input
-              id="fandoms"
-              type="text"
-              value={fandomsInput}
-              onChange={(e) => setFandomsInput(e.target.value)}
-              placeholder="e.g. Harry Potter, Marvel, Star Wars"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            <AsyncCreatableSelect
+              isMulti
+              cacheOptions
+              defaultOptions
+              value={fandoms}
+              loadOptions={(input) => loadOptions("fandoms", input)}
+              onChange={(vals) => setFandoms(vals || [])}
+              placeholder="Type to search or create a fandom..."
+              styles={{
+                menu: (base) => ({ ...base, zIndex: 9999 }),
+                control: (base, state) => ({
+                  ...base,
+                  backgroundColor: "#d3b7a4",
+                  borderColor: state.isFocused ? "#886146" : "#a98c78",
+                  boxShadow: "none",
+                  padding: "0.5rem",
+                  borderRadius: "1rem",
+                  "&:hover": {
+                    borderColor: "#886146",
+                  },
+                }),
+                placeholder: (base) => ({
+                  ...base,
+                  color: "#a98c78",
+                }),
+                input: (base) => ({
+                  ...base,
+                  color: "#886146",
+                }),
+                multiValue: (base) => ({
+                  ...base,
+                  backgroundColor: "#f0eae2",
+                  borderRadius: "9999px",
+                }),
+                multiValueLabel: (base) => ({
+                  ...base,
+                  color: "#886146",
+                }),
+                multiValueRemove: (base) => ({
+                  ...base,
+                  color: "#886146",
+                  "&:hover": {
+                    backgroundColor: "#886146",
+                    color: "white",
+                  },
+                }),
+              }}
             />
           </div>
 
-          {/* Relationships */}
-          <div>
-            <label htmlFor="relationships" className="block font-medium text-gray-700">
-              Relationship(s) (optional, comma separated)
+          {/* Relationships Multi-Select */}
+          <div className="flex flex-col mb-4">
+            <label
+              htmlFor="relationships"
+              className="block font-medium text-[#d3b7a4] mb-1"
+            >
+              Relationship(s) (optional)
             </label>
-            <input
-              id="relationships"
-              type="text"
-              value={relationshipsInput}
-              onChange={(e) => setRelationshipsInput(e.target.value)}
-              placeholder="e.g. Remus/Sirius, Regulus/James"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            <AsyncCreatableSelect
+              isMulti
+              cacheOptions
+              defaultOptions
+              value={relationships}
+              loadOptions={(input) => loadOptions("relationships", input)}
+              onChange={(vals) => setRelationships(vals || [])}
+              placeholder="Type to search or create a relationship..."
+              styles={{
+                menu: (base) => ({ ...base, zIndex: 9999 }),
+                control: (base, state) => ({
+                  ...base,
+                  backgroundColor: "#d3b7a4",
+                  borderColor: state.isFocused ? "#886146" : "#a98c78",
+                  boxShadow: "none",
+                  padding: "0.5rem",
+                  borderRadius: "1rem",
+                  "&:hover": {
+                    borderColor: "#886146",
+                  },
+                }),
+                placeholder: (base) => ({
+                  ...base,
+                  color: "#a98c78",
+                }),
+                input: (base) => ({
+                  ...base,
+                  color: "#886146",
+                }),
+                multiValue: (base) => ({
+                  ...base,
+                  backgroundColor: "#f0eae2",
+                  borderRadius: "9999px",
+                }),
+                multiValueLabel: (base) => ({
+                  ...base,
+                  color: "#886146",
+                }),
+                multiValueRemove: (base) => ({
+                  ...base,
+                  color: "#886146",
+                  "&:hover": {
+                    backgroundColor: "#886146",
+                    color: "white",
+                  },
+                }),
+              }}
             />
           </div>
 
-          {/* Tags */}
-          <div>
-            <label htmlFor="tags" className="block font-medium text-gray-700">
-              Tag(s) (optional, comma separated)
+          {/* Tags Multi-Select */}
+          <div className="flex flex-col mb-4">
+            <label htmlFor="tags" className="block font-medium text-[#d3b7a4] mb-1">
+              Tag(s) (optional)
             </label>
-            <input
-              id="tags"
-              type="text"
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-              placeholder="e.g. fantasy, romance, angst"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            <AsyncCreatableSelect
+              isMulti
+              cacheOptions
+              defaultOptions
+              value={tags}
+              loadOptions={(input) => loadOptions("tags", input)}
+              onChange={(vals) => setTags(vals || [])}
+              placeholder="Type to search or create a tag..."
+              styles={{
+                menu: (base) => ({ ...base, zIndex: 9999 }),
+                control: (base, state) => ({
+                  ...base,
+                  backgroundColor: "#d3b7a4",
+                  borderColor: state.isFocused ? "#886146" : "#a98c78",
+                  boxShadow: "none",
+                  padding: "0.5rem",
+                  borderRadius: "1rem",
+                  "&:hover": {
+                    borderColor: "#886146",
+                  },
+                }),
+                placeholder: (base) => ({
+                  ...base,
+                  color: "#a98c78",
+                }),
+                input: (base) => ({
+                  ...base,
+                  color: "#886146",
+                }),
+                multiValue: (base) => ({
+                  ...base,
+                  backgroundColor: "#f0eae2",
+                  borderRadius: "9999px",
+                }),
+                multiValueLabel: (base) => ({
+                  ...base,
+                  color: "#886146",
+                }),
+                multiValueRemove: (base) => ({
+                  ...base,
+                  color: "#886146",
+                  "&:hover": {
+                    backgroundColor: "#886146",
+                    color: "white",
+                  },
+                }),
+              }}
             />
           </div>
 
-          {/* Buttons */}
+          {/* Submit / Cancel Buttons */}
           <div className="flex justify-end gap-3">
             <button
               type="button"
@@ -281,9 +439,9 @@ const CreateShelf = () => {
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 text-sm bg-[#886146] text-white rounded hover:bg-[#704c2e]"
+              className="px-4 py-2 text-sm bg-[#202d26] text-[#d3b7a4] rounded hover:bg-[#704c2e]"
             >
-              {saving ? "Creating..." : "Create Shelf"}
+              {saving ? "Creating..." : "CREATE SHELF"}
             </button>
           </div>
         </form>
@@ -293,4 +451,3 @@ const CreateShelf = () => {
 };
 
 export default CreateShelf;
-
