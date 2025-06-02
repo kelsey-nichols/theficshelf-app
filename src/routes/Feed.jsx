@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { UserAuth } from "../context/AuthContext";
-import { formatDistanceToNow } from "date-fns";
 import { Plus, X } from "lucide-react";
+import PostCard from "./PostCard"; // Make sure this path is correct
 
 const Feed = () => {
   const { session, signOut } = UserAuth();
@@ -36,7 +36,7 @@ const Feed = () => {
         .eq("followers_id", userId);
 
       const followingIds = follows?.map((f) => f.following_id) || [];
-      followingIds.push(userId); // Include user's own posts
+      followingIds.push(userId);
 
       const { data: posts, error } = await supabase
         .from("posts")
@@ -101,104 +101,9 @@ const Feed = () => {
 
     setNewPostText("");
     setComposerOpen(false);
-    navigate("/feed"); // Clear URL params
-    window.location.reload(); // Reload posts
+    navigate("/feed");
+    window.location.reload();
   };
-
-  const renderPostHeader = (post) => {
-    const name = post.user?.display_name || "Unknown";
-    const handle = post.user?.username || "user";
-    const time = formatDistanceToNow(new Date(post.created_at), {
-      addSuffix: true,
-    });
-
-    return (
-      <div className="text-sm text-gray-500">
-        <span className="font-semibold text-black">{name}</span>{" "}
-        <span className="text-gray-400">@{handle}</span> · {time}
-      </div>
-    );
-  };
-
-  const renderAttachedItem = (post) => {
-  if (post.fic && !post.text.includes("[fic]")) {
-    return (
-      <a
-        href={`/fic/${post.fic.id}`}
-        className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-lg mt-2"
-      >
-        📖 {post.fic.title} by {post.fic.author}
-      </a>
-    );
-  }
-
-  if (post.shelf) {
-    return (
-      <a
-        href={`/bookshelf/${post.shelf.id}`}
-        className="inline-block bg-purple-100 text-purple-800 text-sm px-3 py-1 rounded-lg mt-2"
-      >
-        🗂️ {post.shelf.title} by @{post.user?.username}
-      </a>
-    );
-  }
-
-  return null;
-};
-
-const formatPostText = (post) => {
-  const { text, fic, shelf, user } = post;
-
-  // Inline [fic] replacement
-  if (fic && text.includes("[fic]")) {
-    const parts = text.split("[fic]");
-    return (
-      <p className="mt-2 whitespace-pre-wrap">
-        {parts.map((part, index) => (
-          <React.Fragment key={index}>
-            {part.trimEnd()}
-            {index < parts.length - 1 && (
-              <>
-                {" "}
-                <a
-                  href={`/fic/${post.fic.id}`}
-                  className="inline-block bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-lg mx-1"
-                >
-                  📖 {fic.title} by {fic.author}
-                </a>{" "}
-              </>
-            )}
-          </React.Fragment>
-        ))}
-      </p>
-    );
-  }
-
-  // Inline [shelf] replacement
-  if (shelf && text.includes("[shelf]")) {
-    const parts = text.split("[shelf]");
-    return (
-      <p className="mt-2 whitespace-pre-wrap">
-        {parts.map((part, index) => (
-          <React.Fragment key={index}>
-            {part}
-            {index < parts.length - 1 && (
-              <a
-                href={`/bookshelf/${shelf.id}`}
-                className="inline-block bg-purple-100 text-purple-800 text-sm px-2 py-1 rounded-lg mx-1"
-              >
-                🗂️ {shelf.title} by @{user?.username}
-              </a>
-            )}
-          </React.Fragment>
-        ))}
-      </p>
-    );
-  }
-
-  // Default: just show text
-  return <p className="mt-2 whitespace-pre-wrap">{text}</p>;
-};
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6">
@@ -249,24 +154,11 @@ const formatPostText = (post) => {
       </div>
 
       {/* Posts */}
-        {posts.map((post) => {
-          const includesFic = post.text.includes("[fic]");
-          const includesShelf = post.text.includes("[shelf]");
-
-          return (
-            <div
-              key={post.id}
-              className="mb-6 border-b pb-4 border-gray-200 last:border-0"
-            >
-              {renderPostHeader(post)}
-
-              {/* Only render this block IF it's not already in the text */}
-              {!includesFic && !includesShelf && renderAttachedItem(post)}
-
-              {formatPostText(post)}
-            </div>
-          );
-        })}
+      {posts.map((post) => (
+        <div key={post.id} className="mb-6">
+          <PostCard post={post} />
+        </div>
+      ))}
 
       {error && <p className="text-red-500 mt-4">{error}</p>}
     </div>

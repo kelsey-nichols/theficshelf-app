@@ -5,6 +5,7 @@ import { UserAuth } from "../context/AuthContext";
 import { ChevronDown } from "lucide-react"; 
 import BackButton from "./BackButton";
 import TabBar from "./TabBar";
+import PostCard from "./PostCard";
 import { formatDistanceToNow } from "date-fns";
 
 
@@ -134,8 +135,6 @@ const PublicProfile = () => {
 
     const fetchUserPosts = async () => {
       setLoading(true);
-
-      // Fetch posts by this user
       const { data: postsData, error: postsError } = await supabase
         .from("posts")
         .select("*")
@@ -149,27 +148,14 @@ const PublicProfile = () => {
         return;
       }
 
-      // Fetch profile info once (could optimize if you want)
       const { data: profileData } = await supabase
         .from("profiles")
         .select("id, username, display_name")
         .eq("id", userId)
         .single();
 
-      // Collect all unique fic IDs referenced by posts
-      const ficIds = [
-        ...new Set(
-          postsData
-            .map(post => {
-              // Simple regex or split to detect [fic] in text and get IDs
-              // But you may want to rely on actual post.fic_id field if exists
-              return post.fic_id;
-            })
-            .filter(Boolean)
-        )
-      ];
+      const ficIds = [...new Set(postsData.map(p => p.fic_id).filter(Boolean))];
 
-      // Fetch fics data for all referenced fics
       let ficsData = [];
       if (ficIds.length > 0) {
         const { data } = await supabase
@@ -179,13 +165,11 @@ const PublicProfile = () => {
         ficsData = data || [];
       }
 
-      // Create a map for quick lookup by fic id
       const ficMap = ficsData.reduce((acc, fic) => {
         acc[fic.id] = fic;
         return acc;
       }, {});
 
-      // Enrich posts with user and fic info
       const enrichedPosts = postsData.map((post) => ({
         ...post,
         user: profileData,
@@ -199,66 +183,18 @@ const PublicProfile = () => {
     fetchUserPosts();
   }, [userId]);
 
-  // Format post text with [fic] inline linking
-  const formatPostText = (post) => {
-    const { text, fic } = post;
-
-    if (text.includes("[fic]") && fic) {
-      const parts = text.split("[fic]");
-      return (
-        <p className="mt-2 whitespace-pre-wrap">
-          {parts.map((part, index) => (
-            <span key={index}>
-              {part}
-              {index < parts.length - 1 && (
-                <a
-                  href={`/fic/${fic.id}`}
-                  className="inline-block bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-lg mx-1"
-                >
-                  📖 {fic.title} by {fic.author}
-                </a>
-              )}
-            </span>
-          ))}
-        </p>
-      );
-    }
-
-    return <p className="mt-2 whitespace-pre-wrap">{text}</p>;
-  };
-
-  const renderPostHeader = (post) => {
-    const name = post.user?.display_name || "Unknown";
-    const handle = post.user?.username || "user";
-    const time = formatDistanceToNow(new Date(post.created_at), {
-      addSuffix: true,
-    });
-
-    return (
-      <div className="text-sm text-gray-500">
-        <span className="font-semibold text-black">{name}</span>{" "}
-        <span className="text-gray-400">@{handle}</span> · {time}
-      </div>
-    );
-  };
-
   if (loading) return <p>Loading posts...</p>;
   if (posts.length === 0) return <p>No posts yet.</p>;
 
-  return (
+    return (
     <div className="max-w-xl mx-auto px-4 py-6">
       {posts.map((post) => (
-        <div
-          key={post.id}
-          className="mb-6 border-b pb-4 border-gray-200 last:border-0"
-        >
-          {renderPostHeader(post)}
-          {formatPostText(post)}
-        </div>
+        <PostCard key={post.id} post={post} />
       ))}
     </div>
   );
 };
+
 
     const PublicShelves = ({ userId }) => {
   const [shelves, setShelves] = React.useState([]);

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import { differenceInDays, formatDistanceToNow } from "date-fns";
 import TabBar from "./TabBar"; 
+import PostCard from "./PostCard";
 
 
 const CollapsibleSection = ({ title, items, emptyMessage }) => {
@@ -103,61 +104,13 @@ const UserPosts = ({ ficId, userId }) => {
     fetchUserPosts();
   }, [ficId, userId]);
 
-  const formatPostText = (post) => {
-    const { text, fic } = post;
-
-    if (text.includes("[fic]") && fic) {
-      const parts = text.split("[fic]");
-      return (
-        <p className="mt-2 whitespace-pre-wrap">
-          {parts.map((part, index) => (
-            <span key={index}>
-              {part}
-              {index < parts.length - 1 && (
-                <a
-                  href={`/fic/${fic.id}`}
-                  className="inline-block bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-lg mx-1"
-                >
-                  📖 {fic.title} by {fic.author}
-                </a>
-              )}
-            </span>
-          ))}
-        </p>
-      );
-    }
-
-    return <p className="mt-2 whitespace-pre-wrap">{text}</p>;
-  };
-
-  const renderPostHeader = (post) => {
-    const name = post.user?.display_name || "Unknown";
-    const handle = post.user?.username || "user";
-    const time = formatDistanceToNow(new Date(post.created_at), {
-      addSuffix: true,
-    });
-
-    return (
-      <div className="text-sm text-gray-500">
-        <span className="font-semibold text-black">{name}</span>{" "}
-        <span className="text-gray-400">@{handle}</span> · {time}
-      </div>
-    );
-  };
-
   if (loading) return <p>Loading your posts...</p>;
   if (posts.length === 0) return <p>No posts found for this fic.</p>;
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6">
       {posts.map((post) => (
-        <div
-          key={post.id}
-          className="mb-6 border-b pb-4 border-gray-200 last:border-0"
-        >
-          {renderPostHeader(post)}
-          {formatPostText(post)}
-        </div>
+        <PostCard key={post.id} post={post} />
       ))}
     </div>
   );
