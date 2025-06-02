@@ -105,19 +105,18 @@ const Feed = () => {
     window.location.reload();
   };
 
-  return (
-    <div className="max-w-xl mx-auto px-4 py-6">
-
+return (
+    <div className="max-w-xl mx-auto px-4 py-6 bg-[#d3b7a4] font-serif">
       {/* Composer */}
-      <div className="mb-6 border rounded-lg p-4 shadow-sm bg-white">
+      <div className="mb-6 rounded-lg p-4 shadow-sm bg-[#886146]">
         <div
-          className="flex justify-between items-center cursor-pointer"
+          className="flex justify-between items-center cursor-pointer text-[#d3b7a4] "
           onClick={() => setComposerOpen(!composerOpen)}
         >
-          <span className="font-semibold">
-            {composerOpen ? "Write something..." : "Start a post"}
+          <span className="font-bold">
+            {composerOpen ? "write something..." : "start a post"}
           </span>
-          {composerOpen ? <X size={20} /> : <Plus size={20} />}
+          {composerOpen ? <X size={20} color="#d3b7a4" /> : <Plus size={20} color="#d3b7a4" />}
         </div>
 
         {composerOpen && (
@@ -137,18 +136,20 @@ const Feed = () => {
               </div>
             )}
             <textarea
-              className="w-full p-2 border rounded-lg mb-2"
+              className="w-full p-2 rounded-lg mb-2 bg-[#d3b7a4] text-[#202d26] placeholder-[#a98c78] border border-[#a98c78] focus:outline-none focus:ring-2 focus:ring-[#202d26]"
               rows="3"
               placeholder="What's on your mind?"
               value={newPostText}
               onChange={(e) => setNewPostText(e.target.value)}
             />
-            <button
-              onClick={handleCreatePost}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-            >
-              Post
-            </button>
+            <div className="flex justify-center">
+              <button
+                onClick={handleCreatePost}
+                className="bg-[#202d26] text-[#d3b7a4] px-4 py-2 rounded-lg hover:opacity-90"
+              >
+                POST
+              </button>
+            </div>
           </div>
         )}
       </div>
