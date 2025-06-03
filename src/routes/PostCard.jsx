@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, MessageCircle, MessageCircleX, Ellipsis, Trash2, Flag } from "lucide-react";
+import { Heart, MessageCircle, MessageCircleX, Ellipsis, Trash2, Flag, LibraryBig, Book } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 
@@ -161,7 +161,7 @@ const PostCard = ({ post, onDelete }) => {
     return (
       <div className="text-sm text-gray-500">
         <span 
-          className="font-semibold text-black cursor-pointer" 
+          className="font-bold text-[#202c28] cursor-pointer" 
           onClick={() => navigate(`/user/${handle}`)}
           role="link"
           tabIndex={0}
@@ -173,7 +173,7 @@ const PostCard = ({ post, onDelete }) => {
         >
           {name}
         </span>{" "}
-        <span className="text-gray-400 cursor-pointer" 
+        <span className="text-[#826555] cursor-pointer" 
               onClick={() => navigate(`/user/${handle}`)}
               role="link"
               tabIndex={0}
@@ -194,9 +194,10 @@ const PostCard = ({ post, onDelete }) => {
       return (
         <a
           href={`/fic/${post.fic.id}`}
-          className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-lg mt-2"
+          className="inline-flex items-center gap-2 bg-[#6d8b8d] text-[#D4B9A8] text-sm px-3 py-1 rounded-lg mt-2"
         >
-          📖 {post.fic.title} by {post.fic.author}
+          <Book className="w-4 h-4" />
+          {post.fic.title} by {post.fic.author}
         </a>
       );
     }
@@ -205,9 +206,10 @@ const PostCard = ({ post, onDelete }) => {
       return (
         <a
           href={`/bookshelf/${post.shelf.id}`}
-          className="inline-block bg-purple-100 text-purple-800 text-sm px-3 py-1 rounded-lg mt-2"
+          className="inline-flex items-center gap-2 bg-[#34252F] text-[#D4B9A8] text-sm px-3 py-1 rounded-lg mt-2"
         >
-          🗂️ {post.shelf.title} by @{post.user?.username}
+          <LibraryBig className="w-4 h-4" />
+          {post.shelf.title} by @{post.user?.username}
         </a>
       );
     }
@@ -224,16 +226,17 @@ const PostCard = ({ post, onDelete }) => {
         <p className="mt-2 whitespace-pre-wrap">
           {parts.map((part, index) => (
             <React.Fragment key={index}>
-              {part.trimEnd()}
-              {index < parts.length - 1 && (
-                <a
-                  href={`/fic/${fic.id}`}
-                  className="inline-block bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-lg mx-1"
-                >
-                  📖 {fic.title} by {fic.author}
-                </a>
-              )}
-            </React.Fragment>
+            {part.trimEnd()}
+            {index < parts.length - 1 && (
+              <a
+                href={`/fic/${fic.id}`}
+                className="inline-flex items-center gap-2 bg-[#6d8b8d] text-[#D4B9A8] text-sm px-2 py-1 rounded-lg mx-1"
+              >
+                <Book className="w-4 h-4" />
+                {fic.title} by {fic.author}
+              </a>
+            )}
+          </React.Fragment>
           ))}
         </p>
       );
@@ -245,16 +248,17 @@ const PostCard = ({ post, onDelete }) => {
         <p className="mt-2 whitespace-pre-wrap">
           {parts.map((part, index) => (
             <React.Fragment key={index}>
-              {part}
-              {index < parts.length - 1 && (
-                <a
-                  href={`/bookshelf/${shelf.id}`}
-                  className="inline-block bg-purple-100 text-purple-800 text-sm px-2 py-1 rounded-lg mx-1"
-                >
-                  🗂️ {shelf.title} by @{user?.username}
-                </a>
-              )}
-            </React.Fragment>
+            {part}
+            {index < parts.length - 1 && (
+              <a
+                href={`/bookshelf/${shelf.id}`}
+                className="inline-flex items-center gap-2 bg-[#34252F] text-[#D4B9A8] text-sm px-2 py-1 rounded-lg mx-1"
+              >
+                <LibraryBig className="w-4 h-4" />
+                {shelf.title} by @{user?.username}
+              </a>
+            )}
+          </React.Fragment>
           ))}
         </p>
       );
@@ -297,7 +301,7 @@ const PostCard = ({ post, onDelete }) => {
         </div>
         <button
           onClick={() => setReplyTo(comment.id)}
-          className="text-xs text-blue-600 hover:underline ml-1"
+          className="text-xs text-[#946241] hover:underline ml-1"
         >
           Reply
         </button>
@@ -312,7 +316,7 @@ const PostCard = ({ post, onDelete }) => {
   };
 
   return (
-    <div className="border-b pb-4 mb-6">
+    <div className="border-b border-[#202D26] pb-4 mb-6">
       <div className="flex justify-between items-start relative">
         {renderPostHeader()}
 
@@ -361,7 +365,7 @@ const PostCard = ({ post, onDelete }) => {
         >
           <Heart
             size={18}
-            className={liked ? "fill-red-500 text-red-500" : "text-gray-400"}
+            className={liked ? "fill-[#9b5744] text-[#9b5744]" : "text-[#494f4b]"}
           />
           <span>{likeCount}</span>
         </button>
@@ -370,7 +374,7 @@ const PostCard = ({ post, onDelete }) => {
         <button
           type="button"
           onClick={() => setCommentsOpen(!commentsOpen)}
-          className="flex items-center gap-1 text-blue-600 hover:underline focus:outline-none"
+          className="flex items-center gap-1 text-[#976242] hover:underline focus:outline-none"
           aria-expanded={commentsOpen}
           aria-label={commentsOpen ? "Hide comments" : "View comments"}
         >
@@ -394,7 +398,7 @@ const PostCard = ({ post, onDelete }) => {
                 <button
                   type="button"
                   onClick={() => setReplyTo(null)}
-                  className="text-blue-600 ml-2"
+                  className="text-[#946241] ml-2"
                 >
                   Cancel
                 </button>
@@ -409,9 +413,9 @@ const PostCard = ({ post, onDelete }) => {
             />
             <button
               type="submit"
-              className="mt-2 bg-blue-500 text-white px-4 py-2 rounded text-sm"
+              className="mt-2 bg-[#202c28] text-[#d4b9a8] px-4 py-2 rounded text-sm ml-auto"
             >
-              Comment
+              COMMENT
             </button>
           </form>
         </div>
