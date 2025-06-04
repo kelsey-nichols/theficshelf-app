@@ -255,16 +255,19 @@ const PublicProfile = () => {
 
   return (
   <>
-    <div className="min-h-screen flex flex-col items-center justify-start bg-[#d3b7a4] text-[#202d26] p-6 font-serif">
-      <BackButton />
+    <div className="min-h-screen flex flex-col items-start justify-start bg-[#d3b7a4] text-[#202d26] p-6 font-serif">
+      <div className="absolute top-12 left-1 text-[#202d26]">
+        <BackButton />
+      </div>
 
       {profile ? (
-        <div className="w-full max-w-md text-center mt-10 space-y-4 border-b border-[#202d26]/20 pb-6">
-          <h1 className="text-3xl font-bold">{profile.display_name}</h1>
-          <p className="text-[#956342]">@{profile.username}</p>
-          <p className="mt-2">{profile.bio}</p>
-
-          <div className="flex justify-center gap-6 mt-4 text-sm">
+        <div className="w-full max-w-md mt-10 space-y-4 border-b border-[#202d26]/20 pb-6">
+          {/* Header section stays centered */}
+          <div className="text-center">
+            <h1 className="text-3xl font-bold">{profile.display_name}</h1>
+            <p className="text-[#956342]">@{profile.username}</p>
+            <p className="mt-2">{profile.bio}</p>
+            <div className="flex justify-center gap-6 mt-4 text-sm">
             <div>
               <span className="font-semibold">{followingCount}</span>{" "}
               <span className="text-[#956342]">Following</span>
@@ -275,7 +278,7 @@ const PublicProfile = () => {
             </div>
           </div>
 
-          <p className="mt-2 text-sm text-[#202d26]/80">
+          <p className="mt-2 text-sm text-[#202d26]/80 text-center">
             {wordsRead.toLocaleString()} words read
           </p>
 
@@ -312,6 +315,9 @@ const PublicProfile = () => {
               )}
             </div>
           )}
+          </div>
+
+          
 
           {/* Move tabs and content inside this container */}
           <TabBar
@@ -330,13 +336,17 @@ const PublicProfile = () => {
               paddingTop: "1rem",
             }}
           >
-            {activeTab === "posts" && profile && <ProfilePosts userId={profile.id} />}
-            {activeTab === "shelves" && profile && <PublicShelves userId={profile.id} />}
-          </div>
+            {activeTab === "posts" && profile && (
+            <div className="text-left">
+              <ProfilePosts userId={profile.id} />
+            </div>
+          )}
+          {activeTab === "shelves" && profile && <PublicShelves userId={profile.id} />}
         </div>
-      ) : (
-        <p className="mt-10">Loading profile...</p>
-      )}
+      </div>
+    ) : (
+      <p className="mt-10">Loading profile...</p>
+    )}
 
       {error && <p className="text-red-500 mt-4">{error}</p>}
     </div>

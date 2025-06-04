@@ -1,17 +1,18 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { ChevronRight, ChevronLeft, MoreVertical } from "lucide-react";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { differenceInDays, formatDistanceToNow } from "date-fns";
-import TabBar from "./TabBar"; 
+import TabBar from "./TabBar";
 import PostCard from "./PostCard";
-
+import BackButton from "./BackButton";
 
 const CollapsibleSection = ({ title, items, emptyMessage }) => {
   const [open, setOpen] = useState(false);
 
   return (
     <div
+      onClick={() => setOpen((prev) => !prev)}
       style={{
         marginBottom: "1rem",
         cursor: "pointer",
@@ -19,7 +20,6 @@ const CollapsibleSection = ({ title, items, emptyMessage }) => {
         color: "#d5baa9",
         fontFamily: "serif",
       }}
-      onClick={() => setOpen((prev) => !prev)}
     >
       <h3
         style={{
@@ -32,8 +32,8 @@ const CollapsibleSection = ({ title, items, emptyMessage }) => {
         <ChevronRight
           size={16}
           style={{
-            transition: "transform 0.2s ease",
             transform: open ? "rotate(90deg)" : "rotate(0deg)",
+            transition: "transform 0.2s ease",
             flexShrink: 0,
           }}
         />
@@ -108,14 +108,13 @@ const UserPosts = ({ ficId, userId }) => {
   if (posts.length === 0) return <p>No posts found for this fic.</p>;
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6">
+    <div className="max-w-xl mx-auto px-4 py-6 text-left">
       {posts.map((post) => (
         <PostCard key={post.id} post={post} />
       ))}
     </div>
   );
 };
-
 
 const AllUsersNotes = ({ ficId }) => {
   const PAGE_SIZE = 10;
@@ -124,69 +123,61 @@ const AllUsersNotes = ({ ficId }) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  const fetchNotes = useCallback(async () => {
-  if (!ficId) return;
-  setLoading(true);
+  const fetchNotes = async () => {
+    if (!ficId) return;
+    setLoading(true);
 
-  // Step 1: Fetch notes
-  const { data: notesData, error: notesError } = await supabase
-    .from("reading_logs")
-    .select("*")
-    .eq("fic_id", ficId)
-    .order("created_at", { ascending: false })
-    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+    const { data: notesData, error: notesError } = await supabase
+      .from("reading_logs")
+      .select("*")
+      .eq("fic_id", ficId)
+      .order("created_at", { ascending: false })
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-  if (notesError) {
-    console.error("Error fetching notes:", notesError);
+    if (notesError) {
+      console.error("Error fetching notes:", notesError);
+      setLoading(false);
+      return;
+    }
+
+    const filteredNotes = notesData.filter(
+      (note) => note.notes && note.notes.trim() !== ""
+    );
+
+    const userIds = [...new Set(filteredNotes.map((note) => note.user_id))];
+
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, username, display_name")
+      .in("id", userIds);
+
+    if (profilesError) {
+      console.error("Error fetching profiles:", profilesError);
+      setLoading(false);
+      return;
+    }
+
+    const profilesMap = {};
+    profilesData.forEach((profile) => {
+      profilesMap[profile.id] = profile;
+    });
+
+    const enrichedNotes = filteredNotes.map((note) => ({
+      ...note,
+      profile: profilesMap[note.user_id] || null,
+    }));
+
+    if (enrichedNotes.length < PAGE_SIZE) {
+      setHasMore(false);
+    }
+
+    setNotes((prev) => [...prev, ...enrichedNotes]);
     setLoading(false);
-    return;
-  }
-
-  // Filter empty notes
-  const filteredNotes = notesData.filter(
-    (note) => note.notes && note.notes.trim() !== ""
-  );
-
-  // Step 2: Get unique user_ids
-  const userIds = [
-    ...new Set(filteredNotes.map((note) => note.user_id)),
-  ];
-
-  // Step 3: Fetch profiles for these user IDs
-  const { data: profilesData, error: profilesError } = await supabase
-    .from("profiles")
-    .select("id, username, display_name")
-    .in("id", userIds);
-
-  if (profilesError) {
-    console.error("Error fetching profiles:", profilesError);
-    setLoading(false);
-    return;
-  }
-
-  // Step 4: Create a map of user_id to profile for quick lookup
-  const profilesMap = {};
-  profilesData.forEach((profile) => {
-    profilesMap[profile.id] = profile;
-  });
-
-  // Step 5: Attach profile info to each note
-  const enrichedNotes = filteredNotes.map((note) => ({
-    ...note,
-    profile: profilesMap[note.user_id] || null,
-  }));
-
-  if (enrichedNotes.length < PAGE_SIZE) {
-    setHasMore(false);
-  }
-
-  setNotes((prev) => [...prev, ...enrichedNotes]);
-  setLoading(false);
-}, [ficId, page]);
+  };
 
   useEffect(() => {
     fetchNotes();
-  }, [fetchNotes]);
+  }, [ficId, page]);
 
   useEffect(() => {
     setNotes([]);
@@ -199,11 +190,14 @@ const AllUsersNotes = ({ ficId }) => {
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 font-sans text-gray-800">
+    <div className="max-w-xl mx-auto px-4 py-6 font-sans text-gray-800 text-left">
       {notes.length === 0 && !loading && <p>No notes found.</p>}
 
       {notes.map((note) => (
-        <div key={note.id} className="mb-6 border-b border-gray-200 pb-4 last:border-0">
+        <div
+          key={note.id}
+          className="mb-6 border-b border-gray-200 pb-4 last:border-0"
+        >
           <p className="whitespace-pre-wrap font-serif text-[#d5baa9] mb-2">
             {note.notes?.trim() || ""}
           </p>
@@ -240,16 +234,14 @@ const FicPage = () => {
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const toggleMenu = () => setMenuOpen(prev => !prev);
+  const toggleMenu = () => setMenuOpen((prev) => !prev);
 
-  // TODO: Replace this with your actual user context or auth hook
   const [currentUser, setCurrentUser] = useState(null);
-
-    useEffect(() => {
-      supabase.auth.getUser().then(({ data, error }) => {
-        if (!error) setCurrentUser(data.user);
-      });
-    }, []);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (!error) setCurrentUser(data.user);
+    });
+  }, []);
 
   const [fic, setFic] = useState(null);
   const [relatedData, setRelatedData] = useState({
@@ -284,7 +276,7 @@ const FicPage = () => {
         return;
       }
 
-      // Helper: fetch related names through join + lookup tables
+      // Helper to fetch related names
       async function fetchRelated(joinTable, lookupTable) {
         const { data, error } = await supabase
           .from(joinTable)
@@ -295,11 +287,9 @@ const FicPage = () => {
           console.error(`Error fetching ${lookupTable}:`, error);
           return [];
         }
-
         return data.map((item) => item[lookupTable].name);
       }
 
-      // Fetch related data arrays
       const warnings = ficData.archive_warning || [];
       const fandoms = await fetchRelated("fic_fandoms", "fandoms");
       const relationships = await fetchRelated("fic_relationships", "relationships");
@@ -309,7 +299,7 @@ const FicPage = () => {
       setFic(ficData);
       setRelatedData({ warnings, fandoms, relationships, characters, tags });
 
-      // Fetch distinct user count who logged this fic
+      // Fetch distinct user count
       const { countError, count } = await supabase
         .from("reading_logs")
         .select("user_id", { count: "exact", distinct: "user_id", head: true })
@@ -332,68 +322,167 @@ const FicPage = () => {
     if (!updatedAt) return false;
     return differenceInDays(new Date(), new Date(updatedAt)) >= 7;
   };
-
   const canEdit = fic ? canEditFic(fic.updated_at) : false;
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <p>Loading…</p>;
   if (error) return <p>Error: {error}</p>;
   if (!fic) return <p>Fic not found.</p>;
 
+  // Format the “Read Full Fic” link:
+  // (Assumes your fics table has a `link` field, e.g. “example.com/story123” or “www.example.com/story123” or “https://example.com/story123”)
+  const makeFullUrl = (raw) => {
+    if (!raw) return "#";
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    if (raw.startsWith("www.")) return `https://${raw}`;
+    return `https://www.${raw}`;
+  };
+  const fullFicUrl = makeFullUrl(fic.link);
+
   return (
     <div
+    style={{
+      minHeight: "100vh",
+      backgroundColor: "#d3b7a4",
+      fontFamily: "serif",
+      padding: "1rem",
+      position: "relative",
+    }}
+  >
+    {/* ─── BUTTON ROW ─── */}
+    <div
       style={{
-        maxWidth: "1000px",
-        margin: "0 auto",
-        padding: "1rem",
-        fontFamily: "'Georgia', serif",
-        color: "#d5baa9",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "1rem",
       }}
     >
-      {/* Back button */}
+      {/* Back Button (left side) */}
       <button
         onClick={() => navigate(-1)}
-        style={{
-          backgroundColor: "transparent",
-          border: "none",
-          color: "#d5baa9",
-          cursor: "pointer",
-          marginBottom: "1rem",
-          fontSize: "1rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.25rem",
-        }}
         aria-label="Go back"
+        style={{
+          backgroundColor: "#d5baa9",
+          padding: "0.3rem",
+          border: "none",
+          borderRadius: "6px",
+          cursor: "pointer",
+        }}
       >
-        <ChevronLeft size={18} />
-        Back
+        <ChevronLeft size={30} color="#202d26" />
       </button>
 
-      {/* Fic Info Header pinned top */}
+      {/* Menu Button (right side), now dark‐green */}
+      <button
+        onClick={toggleMenu}
+        aria-label="Open fic actions menu"
+        style={{
+          background: "transparent",
+          border: "none",
+          color: "#202d26",    // dark‐green so it doesn’t blend into #d3b7a4
+          cursor: "pointer",
+          padding: "0.3rem",
+        }}
+      >
+        <MoreVertical size={24} />
+      </button>
+
+      {menuOpen && (
+        <div
+          style={{
+            position: "absolute",
+            top: "3.5rem",         // just below the button row
+            right: "1rem",
+            backgroundColor: "#1a1a1a",
+            border: "1px solid #333",
+            borderRadius: "4px",
+            padding: "0.5rem",
+            zIndex: 100,
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.5rem",
+            minWidth: "150px",
+          }}
+        >
+          <button
+            onClick={() => navigate(`/log-fic/${fic.id}`, { state: { fic } })}
+            style={{
+              backgroundColor: "#3d9970",
+              color: "#fff",
+              border: "none",
+              padding: "0.5rem",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Log Fic
+          </button>
+          <button
+            onClick={() => navigate("/share-fic", { state: { fic } })}
+            style={{
+              backgroundColor: "#0074D9",
+              color: "#fff",
+              border: "none",
+              padding: "0.5rem",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Share Fic
+          </button>
+          <button
+            onClick={() =>
+              navigate(`/edit-fic/${fic.id}`, { state: { fic } })
+            }
+            disabled={!canEdit}
+            title={
+              !canEdit
+                ? "You can only edit this fic 7 days after its last update"
+                : ""
+            }
+            style={{
+              backgroundColor: canEdit ? "#FF851B" : "#555",
+              color: "#fff",
+              border: "none",
+              padding: "0.5rem",
+              borderRadius: "4px",
+              cursor: canEdit ? "pointer" : "not-allowed",
+              fontFamily: "inherit",
+            }}
+          >
+            Edit Fic
+          </button>
+        </div>
+      )}
+    </div>
+    
+      {/* 2) Fic Info Header (no longer sticky), background #202d26 */}
       <div
         style={{
-          position: "sticky",
-          top: 0,
-          backgroundColor: "#102020",
-          padding: "1rem",
+          backgroundColor: "#202d26",
+          padding: "3rem",
           borderRadius: "8px",
           marginBottom: "1rem",
-          zIndex: 10,
-          boxShadow: "0 2px 5px rgba(0,0,0,0.7)",
+          marginTop: "2rem",
+          color: "#d5baa9",
+          position: "relative", // so menu can be absolute inside
         }}
       >
         <h1
           style={{
             fontSize: "2rem",
             marginBottom: "0.25rem",
-            fontFamily: "'Georgia', serif",
+            fontFamily: "serif",
           }}
         >
           {fic.title}
         </h1>
+
         <p
           style={{
-            marginTop: 0,
+            margin: 0,
             marginBottom: "0.25rem",
             fontSize: "1.1rem",
           }}
@@ -401,113 +490,55 @@ const FicPage = () => {
           by{" "}
           <a
             href={`/users/${fic.user_id}`}
-            style={{ color: "#d5baa9", textDecoration: "italicized" }}
+            style={{
+              color: "#d5baa9",
+              fontStyle: "italic",
+              textDecoration: "none",
+            }}
           >
             {fic.author || "Unknown Author"}
           </a>
         </p>
 
-      {/* Menu button top-right */}
-<div style={{ position: "absolute", top: "1rem", right: "1rem" }}>
-  <button
-    onClick={toggleMenu}
-    aria-label="Open fic actions menu"
-    style={{
-      background: "transparent",
-      border: "none",
-      color: "#d5baa9",
-      cursor: "pointer",
-    }}
-  >
-    <MoreVertical size={20} />
-  </button>
+        {fic.link && (
+          <p style={{ marginTop: "0.5rem", marginBottom: "1rem" }}>
+            <a
+              href={fullFicUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "#886146",
+                textDecoration: "underline",
+                fontSize: "1rem",
+              }}
+            >
+              Fic Link
+            </a>
+          </p>
+        )}
 
-  {menuOpen && (
-    <div
-      style={{
-        position: "absolute",
-        top: "100%",
-        right: 0,
-        backgroundColor: "#1a1a1a",
-        border: "1px solid #333",
-        borderRadius: "4px",
-        padding: "0.5rem",
-        marginTop: "0.25rem",
-        zIndex: 100,
-        display: "flex",
-        flexDirection: "column",
-        gap: "0.5rem",
-        minWidth: "150px",
-      }}
-    >
-      <button
-        onClick={() => navigate(`/log-fic/${fic.id}`, { state: { fic } })}
-        style={{
-          backgroundColor: "#3d9970",
-          color: "#fff",
-          border: "none",
-          padding: "0.5rem",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontFamily: "inherit",
-        }}
-      >
-        Log Fic
-      </button>
-      <button
-        onClick={() => navigate("/share-fic", { state: { fic } })}
-        style={{
-          backgroundColor: "#0074D9",
-          color: "#fff",
-          border: "none",
-          padding: "0.5rem",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontFamily: "inherit",
-        }}
-      >
-        Share Fic
-      </button>
 
-      <button
-      onClick={() => navigate(`/edit-fic/${fic.id}`, { state: { fic } })}
-      disabled={!canEdit}
-      title={!canEdit ? "You can only edit this fic 7 days after its last update" : ""}
-      style={{
-        backgroundColor: canEdit ? "#FF851B" : "#555",
-        color: "#fff",
-        border: "none",
-        padding: "0.5rem",
-        borderRadius: "4px",
-        cursor: canEdit ? "pointer" : "not-allowed",
-        fontFamily: "inherit",
-      }}
-    >
-      Edit Fic
-    </button>
 
-    </div>
-  )}
-</div>
-
+        {/* 5) Fic summary */}
         <p
           style={{
-            margin: 0,
+            margin: "1rem 0",
             fontStyle: "italic",
             fontSize: "0.9rem",
             whiteSpace: "pre-wrap",
+            color: "#d5baa9",
           }}
         >
           {fic.summary || "No summary provided."}
         </p>
 
+        {/* 6) Collapsible sections, stacked vertically */}
         <div
           style={{
             display: "flex",
-            flexWrap: "wrap",
+            flexDirection: "column",
             gap: "1rem",
             marginTop: "0.5rem",
-            fontSize: "0.9rem",
           }}
         >
           <CollapsibleSection
@@ -535,13 +566,10 @@ const FicPage = () => {
             items={relatedData.tags.map((name) => ({ name }))}
             emptyMessage="No tags"
           />
-          <div style={{ color: "#9e9e9e", marginTop: "auto" }}>
-            {userCount} user{userCount !== 1 ? "s" : ""} reading
-          </div>
         </div>
       </div>
 
-      {/* TabBar */}
+      {/* 7) TabBar (Your Posts / All Users' Notes) */}
       <TabBar
         tabs={[
           { id: "posts", label: "Your Posts" },
@@ -551,7 +579,7 @@ const FicPage = () => {
         onTabChange={setActiveTab}
       />
 
-      {/* Tab content container with scroll */}
+      {/* 8) Scrollable content area below */}
       <div
         style={{
           maxHeight: "60vh",
@@ -560,7 +588,7 @@ const FicPage = () => {
         }}
       >
         {activeTab === "posts" && (
-          <UserPosts ficId={ficId} userId={currentUser.id} />
+          <UserPosts ficId={ficId} userId={currentUser?.id} />
         )}
         {activeTab === "notes" && <AllUsersNotes ficId={ficId} />}
       </div>
@@ -569,3 +597,4 @@ const FicPage = () => {
 };
 
 export default FicPage;
+

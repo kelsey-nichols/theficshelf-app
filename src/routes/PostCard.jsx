@@ -409,7 +409,7 @@ const PostCard = ({ post, onDelete }) => {
               placeholder="Add a comment..."
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              className="w-full border rounded px-3 py-2 text-sm"
+              className="w-full border border-[#202d26] rounded bg-[#e5e0dc] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
             />
             <button
               type="submit"
