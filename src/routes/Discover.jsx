@@ -184,11 +184,11 @@ export default function DiscoverPage() {
         return;
       }
       let { data, error } = await supabase
-        .from("shelves")
-        .select("id, title")
-        .ilike("title", `%${shelfTitleText.trim()}%`)
-        .eq("is_private", false)
-        .limit(8);
+      .from("shelves")
+      .select("id, title")
+      .ilike("title", `%${shelfTitleText.trim()}%`)
+      .eq("is_private", false)
+      .limit(8);
       if (error) {
         console.error(error);
         setShelfTitleSuggestions([]);
@@ -588,7 +588,23 @@ const runSearch = async () => {
       return;
     }
 
-    setResults((prev) => (page === 1 ? shelfRows : [...prev, ...shelfRows]));
+    const userIds = [...new Set(shelfRows.map((shelf) => shelf.user_id))];
+
+    const { data: profileRows, error: profileErr } = await supabase
+      .from("profiles")
+      .select("id, username")
+      .in("id", userIds);
+
+    const profileMap = Object.fromEntries(
+      profileRows.map((p) => [p.id, p.username])
+    );
+
+    const shelvesWithUsernames = shelfRows.map((shelf) => ({
+      ...shelf,
+      username: profileMap[shelf.user_id] || "unknown user",
+    }));
+
+    setResults((prev) => (page === 1 ? shelvesWithUsernames : [...prev, ...shelvesWithUsernames]));
     setHasMore(shelfRows.length === PAGE_SIZE);
     setLoading(false);
   }
@@ -660,7 +676,7 @@ const runSearch = async () => {
 
 return (
   <div className="min-h-screen bg-[#d3b7a4] p-6 font-serif text-[#202d26]">
-    <h1 className="text-2xl font-bold mb-4">Discover</h1>
+    <h1 className="text-4xl font-bold mb-4">discover</h1>
 
     {/* ─── TABS ─────────────────────────────────────────────────────────────── */}
     <TabBar
@@ -684,7 +700,7 @@ return (
             placeholder="Search by title…"
             value={titleText}
             onChange={(e) => setTitleText(e.target.value)}
-            className="w-full border border-[#202d26] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
+            className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
           />
         </div>
 
@@ -695,7 +711,7 @@ return (
             placeholder="Search by author…"
             value={authorText}
             onChange={(e) => setAuthorText(e.target.value)}
-            className="w-full border border-[#202d26] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
+            className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
           />
           {authorSuggestions.length > 0 && (
             <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-sm max-h-40 overflow-y-auto mt-1 text-sm">
@@ -741,7 +757,7 @@ return (
               placeholder="Filter by fandom…"
               value={fandomText}
               onChange={(e) => setFandomText(e.target.value)}
-              className="w-full border border-[#202d26] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
+              className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
             />
             {fandomSuggestions.length > 0 && (
               <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-sm max-h-40 overflow-y-auto mt-1 text-sm">
@@ -785,7 +801,7 @@ return (
               placeholder="Filter by relationship…"
               value={relationshipText}
               onChange={(e) => setRelationshipText(e.target.value)}
-              className="w-full border border-[#202d26] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
+              className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
             />
             {relationshipSuggestions.length > 0 && (
               <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-sm max-h-40 overflow-y-auto mt-1 text-sm">
@@ -829,7 +845,7 @@ return (
               placeholder="Filter by tag…"
               value={tagText}
               onChange={(e) => setTagText(e.target.value)}
-              className="w-full border border-[#202d26] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
+              className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
             />
             {tagSuggestions.length > 0 && (
               <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-sm max-h-40 overflow-y-auto mt-1 text-sm">
@@ -879,7 +895,7 @@ return (
             placeholder="Search shelf title…"
             value={shelfTitleText}
             onChange={(e) => setShelfTitleText(e.target.value)}
-            className="w-full border border-[#202d26] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
+            className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
           />
           {shelfTitleSuggestions.length > 0 && (
             <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-sm max-h-40 overflow-y-auto mt-1 text-sm">
@@ -925,7 +941,7 @@ return (
               placeholder="Filter shelf by fandom…"
               value={fandomText}
               onChange={(e) => setFandomText(e.target.value)}
-              className="w-full border border-[#202d26] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
+              className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
             />
             {fandomSuggestions.length > 0 && (
               <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-sm max-h-40 overflow-y-auto mt-1 text-sm">
@@ -968,7 +984,7 @@ return (
               placeholder="Filter shelf by relationship…"
               value={relationshipText}
               onChange={(e) => setRelationshipText(e.target.value)}
-              className="w-full border border-[#202d26] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
+              className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
             />
             {relationshipSuggestions.length > 0 && (
               <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-sm max-h-40 overflow-y-auto mt-1 text-sm">
@@ -1011,7 +1027,7 @@ return (
               placeholder="Filter shelf by tag…"
               value={tagText}
               onChange={(e) => setTagText(e.target.value)}
-              className="w-full border border-[#202d26] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
+              className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
             />
             {tagSuggestions.length > 0 && (
               <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-sm max-h-40 overflow-y-auto mt-1 text-sm">
@@ -1059,7 +1075,7 @@ return (
             placeholder="Search username…"
             value={usernameText}
             onChange={(e) => setUsernameText(e.target.value)}
-            className="w-full border border-[#202d26] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
+            className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
           />
           {userSuggestions.length > 0 && (
             <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-sm max-h-40 overflow-y-auto mt-1 text-sm">
@@ -1117,22 +1133,19 @@ return (
             return (
               <div
                 key={item.id}
-                className="mb-6 p-4 bg-white rounded shadow hover:shadow-md transition"
+                className="mb-6 p-4 bg-[#886146] rounded shadow hover:shadow-md transition"
               >
                 <h3
-                  className="text-xl font-semibold cursor-pointer text-[#202d26]"
+                  className="text-xl font-semibold cursor-pointer text-[#d3b7a4]"
                   onClick={() => navigate(`/fic/${item.id}`)}
                 >
                   {item.title}
                 </h3>
-                <p className="text-sm text-gray-600 mb-2">by {item.author}</p>
-                <p className="text-sm mb-2 line-clamp-3">{item.summary}</p>
-                <div className="flex text-xs text-gray-500">
+                <p className="text-sm text-[#202d26] mb-2">by {item.author}</p>
+                <p className="text-sm text-[#d3b7a4] mb-2 line-clamp-3">{item.summary}</p>
+                <div className="flex text-xs text-[#202d26]">
                   <span className="mr-4">Hits: {item.hits}</span>
                   <span className="mr-4">Kudos: {item.kudos}</span>
-                  <span>
-                    Updated: {new Date(item.updated_at).toLocaleDateString()}
-                  </span>
                 </div>
               </div>
             );
@@ -1140,16 +1153,16 @@ return (
             return (
               <div
                 key={item.id}
-                className="mb-6 p-4 bg-white rounded shadow hover:shadow-md transition"
+                className="mb-6 p-4 bg-[#886146] rounded shadow hover:shadow-md transition"
               >
                 <h3
-                  className="text-xl font-semibold cursor-pointer text-[#202d26]"
+                  className="text-xl font-semibold cursor-pointer text-[#d3b7a4]"
                   onClick={() => navigate(`/bookshelf/${item.id}`)}
                 >
                   {item.title}
                 </h3>
-                <p className="text-sm text-gray-600 mb-2">
-                  Created by user ID {item.user_id}
+                <p className="text-sm text-[#202d26] mb-2">
+                  Created by @{item.username}
                 </p>
               </div>
             );
@@ -1157,16 +1170,16 @@ return (
             return (
               <div
                 key={item.id}
-                className="mb-6 p-4 bg-white rounded shadow hover:shadow-md transition"
+                className="mb-6 p-4 bg-[#886146] rounded shadow hover:shadow-md transition"
               >
                 <h3
-                  className="text-xl font-semibold cursor-pointer text-[#202d26]"
+                  className="text-xl font-semibold cursor-pointer text-[#d3b7a4]"
                   onClick={() => navigate(`/user/${item.username}`)}
                 >
                   {item.username}
                 </h3>
-                <p className="text-sm text-gray-600">{item.display_name}</p>
-                <p className="text-sm text-gray-500 line-clamp-2">
+                <p className="text-sm text-[#202d26]">{item.display_name}</p>
+                <p className="text-sm text-[#d3b7a4] line-clamp-2">
                   {item.bio}
                 </p>
               </div>
