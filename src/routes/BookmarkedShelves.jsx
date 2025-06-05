@@ -62,7 +62,7 @@ const BookmarkedShelves = () => {
   return (
     <div className="min-h-screen px-6 py-8 bg-[#d3b7a4]">
       <div className="max-w-md mx-auto mb-6">
-        <h1 className="text-3xl font-bold text-[#202d26]">Bookmarked Shelves</h1>
+        <h1 className="text-4xl font-bold text-[#202d26]">bookmarked shelves</h1>
       </div>
 
       {bookmarkedShelves.length === 0 ? (

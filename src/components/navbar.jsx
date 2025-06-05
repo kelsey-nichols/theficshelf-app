@@ -1,52 +1,78 @@
-import { LibraryBig, Search, BookmarkPlus, Newspaper, User } from "lucide-react";
+import { LibraryBig, Search, BookmarkPlus, Bookmark, Newspaper, User, LogOut } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { UserAuth } from "../context/AuthContext";
+import MobileNavbar from "./MobileNavbar";
 
 const tabs = [
-  { id: 'bookshelf', icon: LibraryBig, label: 'Bookshelf', path: '/bookshelf' },
-  { id: 'discover', icon: Search, label: 'Discover', path: '/discover' },
-  { id: 'add-fic', icon: BookmarkPlus, label: 'AddFic', path: '/add-fic' },
-  { id: 'feed', icon: Newspaper, label: 'Feed', path: '/feed' },
-  { id: 'user', icon: User, label: 'User', path: '/user' },
+  { id: "bookshelf", icon: LibraryBig, label: "bookshelf", path: "/bookshelf" },
+  { id: "discover", icon: Search, label: "discover", path: "/discover" },
+  { id: "add-fic", icon: BookmarkPlus, label: "add fic", path: "/add-fic" },
+  { id: "feed", icon: Newspaper, label: "feed", path: "/feed" },
+  { id: "user", icon: User, label: "user", path: "/user" },
+  { id: "bookmarked-shelves", icon: Bookmark, label: "bookmarks", path: "/user/bookmarked-shelves" },
 ];
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { signOut } = UserAuth();
 
-  const activeColor = '#886146';  // Slightly lighter than the background
-  const inactiveColor = '#d3b7a4';
-  const bgColor = '#202d26';
+  const activeColor = "#886146";
+  const inactiveColor = "#d3b7a4";
+  const bgColor = "#202d26";
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate("/");
+    } catch (err) {
+      console.error("Sign out failed:", err.message);
+    }
+  };
 
   return (
-    <nav className="fixed bottom-0 w-full shadow-md" style={{ backgroundColor: bgColor }}>
-      <div className="flex justify-between px-2 py-3 pt-4">
-        {tabs.map(({ id, icon: Icon, path }) => {
+    <>
+      {/* Desktop Sidebar */}
+      <nav
+        className="hidden md:flex fixed top-0 left-0 h-screen w-64 p-4 flex-col shadow-lg z-50"
+        style={{ backgroundColor: bgColor }}
+      >
+        {/* All tabs */}
+        {tabs.map(({ id, icon: Icon, label, path }) => {
           const isActive = location.pathname === path;
-
           return (
             <button
               key={id}
               onClick={() => navigate(path)}
-              className="flex flex-col items-center justify-center flex-1 focus:outline-none"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                appearance: 'none',
-              }}
+              className={`flex items-center px-4 py-3 rounded-xl mb-2 transition-colors duration-200 text-left ${
+                isActive ? "bg-[#3b4c43]" : "hover:bg-[#2e3a34]"
+              }`}
+              style={{ color: isActive ? activeColor : inactiveColor }}
             >
-              <Icon
-                className="h-6 w-6 transition-colors"
-                style={{ color: isActive ? activeColor : inactiveColor }}
-              />
-              <div
-                className="mt-1 h-1 w-6 rounded-full transition-all duration-300"
-                style={{ backgroundColor: isActive ? activeColor : 'transparent' }}
-              />
+              <Icon className="w-5 h-5 mr-3" />
+              <span className="text-md font-medium">{label}</span>
             </button>
           );
         })}
+
+        {/* Spacer to push sign out button to bottom */}
+        <div className="flex-grow" />
+
+        {/* Sign Out Button */}
+        <button
+          onClick={handleSignOut}
+          className="flex items-center px-4 py-3 rounded-xl mt-auto transition-colors duration-200 text-left hover:bg-[#2e3a34]"
+          style={{ color: inactiveColor }}
+        >
+          <LogOut className="w-5 h-5 mr-3" />
+          <span className="text-md font-medium">Sign Out</span>
+        </button>
+      </nav>
+
+      {/* Mobile Navbar */}
+      <div className="md:hidden">
+        <MobileNavbar />
       </div>
-    </nav>
+    </>
   );
 }

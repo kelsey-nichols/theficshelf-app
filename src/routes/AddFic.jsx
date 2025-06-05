@@ -250,81 +250,71 @@ const AddFic = () => {
     }
   };
 
-  // Inline styles are copied from EditFic
-  const formContainerStyle = {
-    maxWidth: 700,
-    margin: "auto",
-    padding: 20,
-    fontFamily: "Arial, sans-serif",
-  };
-
-  const labelStyle = { display: "block", marginBottom: 10 };
-  const inputStyle = { width: "100%", padding: 8, marginTop: 4 };
-  const numberInputStyle = { width: "100%", padding: 8, marginTop: 4, minWidth: 0 };
-
-  return (
-    <form onSubmit={handleSubmit} style={formContainerStyle}>
-      <h2>Add a New Fic</h2>
+return (
+  <div className="min-h-screen bg-[#d3b7a4] flex justify-center items-start py-10 px-4">
+    <form
+      onSubmit={handleSubmit}
+      className="max-w-2xl w-full bg-[#202d26] text-[#d3b7a4] shadow-md space-y-6 font-serif rounded-xl p-8"
+    >
+      <h2 className="text-3xl font-semibold text-[#d3b7a4] mb-6">add a new fic</h2>
 
       {/* Fic Link */}
-      <label style={labelStyle}>
-        Fic Link:
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Fic Link:</label>
         <input
           type="text"
           value={formData.link}
           onChange={(e) => {
-            // strip https://, www., lowercase immediately
             const raw = e.target.value.trim().toLowerCase();
-            const cleaned = raw
-              .replace(/^https?:\/\//, "")
-              .replace(/^www\./, "");
+            const cleaned = raw.replace(/^https?:\/\//, "").replace(/^www\./, "");
             handleChange("link", cleaned);
           }}
           required
-          style={inputStyle}
+          className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         />
-      </label>
+      </div>
 
       {/* Title */}
-      <label style={labelStyle}>
-        Title:
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Title:</label>
         <input
           type="text"
           value={formData.title}
           onChange={(e) => handleChange("title", e.target.value)}
-          style={inputStyle}
+          className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         />
-      </label>
+      </div>
 
       {/* Author */}
-      <label style={labelStyle}>
-        Author:
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Author:</label>
         <input
           type="text"
           value={formData.author}
           onChange={(e) => handleChange("author", e.target.value)}
-          style={inputStyle}
+          className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         />
-      </label>
+      </div>
 
       {/* Summary */}
-      <label style={labelStyle}>
-        Summary:
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Summary:</label>
         <textarea
           value={formData.summary}
           onChange={(e) => handleChange("summary", e.target.value)}
-          style={{ ...inputStyle, minHeight: 80 }}
+          rows={4}
+          className="w-full resize-y bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         />
-      </label>
+      </div>
 
       {/* Rating */}
-      <label style={labelStyle}>
-        Rating:
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Rating:</label>
         <select
           value={formData.rating}
           onChange={(e) => handleChange("rating", e.target.value)}
           required
-          style={inputStyle}
+          className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         >
           <option value="">Select a rating</option>
           <option value="General Audiences">General Audiences</option>
@@ -333,16 +323,16 @@ const AddFic = () => {
           <option value="Explicit">Explicit</option>
           <option value="Not Rated">Not Rated</option>
         </select>
-      </label>
+      </div>
 
       {/* Category */}
-      <label style={labelStyle}>
-        Category:
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Category:</label>
         <select
           value={formData.category}
           onChange={(e) => handleChange("category", e.target.value)}
           required
-          style={inputStyle}
+          className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         >
           <option value="">Select a category</option>
           <option value="F/F">F/F</option>
@@ -353,165 +343,107 @@ const AddFic = () => {
           <option value="Other">Other</option>
           <option value="Not Categorized">Not Categorized</option>
         </select>
-      </label>
+      </div>
 
       {/* Archive Warnings */}
-      <fieldset style={{ marginBottom: 20 }}>
-        <legend>Archive Warnings</legend>
-        {[
-          "Choose Not To Use Archive Warnings",
-          "No Archive Warnings Apply",
-          "Graphic Depictions Of Violence",
-          "Major Character Death",
-          "Rape/Non-Con",
-          "Underage",
-        ].map((warning) => (
-          <label key={warning} style={{ display: "block" }}>
-            <input
-              type="checkbox"
-              checked={formData.archive_warning.includes(warning)}
-              onChange={(e) => {
-                let newWarnings = [...formData.archive_warning];
-                if (e.target.checked) {
-                  if (warning === "No Archive Warnings Apply") {
-                    newWarnings = [warning];
+      <fieldset className="border border-[#d3b7a4] rounded-md p-4">
+        <legend className="text-lg font-medium mb-2 text-[#d3b7a4]">Archive Warnings</legend>
+        <div className="space-y-2">
+          {[
+            "Choose Not To Use Archive Warnings",
+            "No Archive Warnings Apply",
+            "Graphic Depictions Of Violence",
+            "Major Character Death",
+            "Rape/Non-Con",
+            "Underage",
+          ].map((warning) => (
+            <label
+              key={warning}
+              className="flex items-center text-[#d3b7a4] text-sm"
+            >
+              <input
+                type="checkbox"
+                checked={formData.archive_warning.includes(warning)}
+                onChange={(e) => {
+                  let newWarnings = [...formData.archive_warning];
+                  if (e.target.checked) {
+                    if (warning === "No Archive Warnings Apply") {
+                      newWarnings = [warning];
+                    } else {
+                      newWarnings = newWarnings.filter(
+                        (w) => w !== "No Archive Warnings Apply"
+                      );
+                      newWarnings.push(warning);
+                    }
                   } else {
-                    newWarnings = newWarnings.filter(
-                      (w) => w !== "No Archive Warnings Apply"
-                    );
-                    newWarnings.push(warning);
+                    newWarnings = newWarnings.filter((w) => w !== warning);
                   }
-                } else {
-                  newWarnings = newWarnings.filter((w) => w !== warning);
-                }
-                handleChange("archive_warning", newWarnings);
-              }}
-            />
-            {warning}
-          </label>
-        ))}
+                  handleChange("archive_warning", newWarnings);
+                }}
+                className="appearance-none h-5 w-5 border-2 border-[#d3b7a4] rounded-sm mr-3 checked:bg-[#886146] checked:border-[#d3b7a4] focus:outline-none cursor-pointer transition"
+              />
+              {warning}
+            </label>
+          ))}
+        </div>
       </fieldset>
 
-      {/* Fandoms */}
-      <label style={labelStyle}>
-        Fandoms:
-        <AsyncCreatableSelect
-          isMulti
-          cacheOptions
-          defaultOptions
-          value={formData.fandoms}
-          loadOptions={(input) => loadOptions("fandoms", input)}
-          onChange={(vals) => handleChange("fandoms", vals || [])}
-          styles={{ menu: (base) => ({ ...base, zIndex: 9999 }) }}
-        />
-      </label>
+      {/* AsyncCreatableSelect Fields */}
+      {[
+        ["Fandoms", "fandoms"],
+        ["Relationships", "relationships"],
+        ["Characters", "characters"],
+        ["Tags", "tags"],
+      ].map(([label, field]) => (
+        <div key={field}>
+          <label className="block mb-2 font-medium text-[#d3b7a4]">{label}:</label>
+          <AsyncCreatableSelect
+            isMulti
+            cacheOptions
+            defaultOptions
+            value={formData[field]}
+            loadOptions={(input) => loadOptions(field, input)}
+            onChange={(vals) => handleChange(field, vals || [])}
+            styles={{ menu: (base) => ({ ...base, zIndex: 9999 }) }}
+          />
+        </div>
+      ))}
 
-      {/* Relationships */}
-      <label style={labelStyle}>
-        Relationships:
-        <AsyncCreatableSelect
-          isMulti
-          cacheOptions
-          defaultOptions
-          value={formData.relationships}
-          loadOptions={(input) => loadOptions("relationships", input)}
-          onChange={(vals) => handleChange("relationships", vals || [])}
-          styles={{ menu: (base) => ({ ...base, zIndex: 9999 }) }}
-        />
-      </label>
+      {/* Numeric Inputs */}
+      {[
+        ["Words", "words"],
+        ["Chapters", "chapters"],
+        ["Hits", "hits"],
+        ["Kudos", "kudos"],
+      ].map(([label, key]) => (
+        <div key={key}>
+          <label className="block mb-2 font-medium text-[#d3b7a4]">{label}:</label>
+          <input
+            type={key === "chapters" ? "text" : "number"}
+            min={key !== "chapters" ? "0" : undefined}
+            value={formData[key]}
+            onChange={(e) => handleChange(key, e.target.value)}
+            className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
+          />
+        </div>
+      ))}
 
-      {/* Characters */}
-      <label style={labelStyle}>
-        Characters:
-        <AsyncCreatableSelect
-          isMulti
-          cacheOptions
-          defaultOptions
-          value={formData.characters}
-          loadOptions={(input) => loadOptions("characters", input)}
-          onChange={(vals) => handleChange("characters", vals || [])}
-          styles={{ menu: (base) => ({ ...base, zIndex: 9999 }) }}
-        />
-      </label>
-
-      {/* Tags */}
-      <label style={labelStyle}>
-        Tags:
-        <AsyncCreatableSelect
-          isMulti
-          cacheOptions
-          defaultOptions
-          value={formData.tags}
-          loadOptions={(input) => loadOptions("tags", input)}
-          onChange={(vals) => handleChange("tags", vals || [])}
-          styles={{ menu: (base) => ({ ...base, zIndex: 9999 }) }}
-        />
-      </label>
-
-      {/* Words */}
-      <label style={labelStyle}>
-        Words:
-        <input
-          type="number"
-          min="0"
-          value={formData.words}
-          onChange={(e) => handleChange("words", e.target.value)}
-          style={numberInputStyle}
-        />
-      </label>
-
-      {/* Chapters */}
-      <label style={labelStyle}>
-        Chapters:
-        <input
-          type="text"
-          value={formData.chapters}
-          onChange={(e) => handleChange("chapters", e.target.value)}
-          style={inputStyle}
-        />
-      </label>
-
-      {/* Hits */}
-      <label style={labelStyle}>
-        Hits:
-        <input
-          type="number"
-          min="0"
-          value={formData.hits}
-          onChange={(e) => handleChange("hits", e.target.value)}
-          style={numberInputStyle}
-        />
-      </label>
-
-      {/* Kudos */}
-      <label style={{ display: "block", marginBottom: 20 }}>
-        Kudos:
-        <input
-          type="number"
-          min="0"
-          value={formData.kudos}
-          onChange={(e) => handleChange("kudos", e.target.value)}
-          style={numberInputStyle}
-        />
-      </label>
-
-      <button
-        type="submit"
-        disabled={isLoading}
-        style={{
-          padding: "10px 20px",
-          backgroundColor: isLoading ? "#ccc" : "#0070f3",
-          color: "white",
-          border: "none",
-          cursor: isLoading ? "not-allowed" : "pointer",
-          borderRadius: 4,
-          fontSize: 16,
-        }}
-      >
-        {isLoading ? "Submitting..." : "Add Fic"}
-      </button>
+      {/* Submit Button */}
+      <div className="flex justify-center mt-6">
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`px-6 py-2 rounded-md text-[#202d26] font-semibold ${
+            isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#d3b7a4] hover:bg-[#6f4b34]"
+          }`}
+        >
+          {isLoading ? "Submitting..." : "ADD FIC"}
+        </button>
+      </div>
     </form>
-  );
+  </div>
+);
+
 };
 
 export default AddFic;

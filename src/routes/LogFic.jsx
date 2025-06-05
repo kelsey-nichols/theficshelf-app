@@ -25,6 +25,7 @@ export default function LogFic() {
 
   useEffect(() => {
     async function fetchData() {
+      // 1) Fetch fic metadata
       const { data: ficData } = await supabase
         .from('fics')
         .select('*')
@@ -32,6 +33,7 @@ export default function LogFic() {
         .single();
       setFic(ficData);
 
+      // 2) Fetch this user's shelves
       const { data: shelvesData, error: shelvesError } = await supabase
         .from('shelves')
         .select('*')
@@ -42,8 +44,9 @@ export default function LogFic() {
         console.error('Error fetching shelves:', shelvesError);
         return;
       }
-
       setAllShelves(shelvesData);
+
+      // 3) Find the “Archive” shelf ID
       const archiveShelf = shelvesData.find((s) => s.title.toLowerCase() === 'archive');
       if (!archiveShelf) {
         console.error('Archive shelf not found!');
@@ -51,6 +54,7 @@ export default function LogFic() {
       }
       setArchiveShelfId(archiveShelf.id);
 
+      // 4) Fetch this user's existing reading_log (if any)
       const { data: logData } = await supabase
         .from('reading_logs')
         .select('*')
@@ -61,16 +65,35 @@ export default function LogFic() {
       if (logData) {
         setReadingLog(logData);
         setStatus(logData.status || 'tbr');
-        setShelves(Array.isArray(logData.shelves) ? logData.shelves.map((s) => s.toString()) : []);
+
+        // Convert shelf UUIDs to strings
+        setShelves(
+          Array.isArray(logData.shelves)
+            ? logData.shelves.map((s) => s.toString())
+            : []
+        );
+
+        // If the log was “currently_reading,” restore the date_started + current_chapter
         setDateStarted(logData.date_started || '');
-        setDateFinished(logData.date_finished || '');
         setCurrentChapter(logData.current_chapter || '');
+
+        // If the log was “read,” we don't populate dateStarted/dateFinished here,
+        // because date_started/date_finished are nulled once a read is complete.
+        setDateFinished(logData.date_finished || '');
+
+        // Restore notes if status was “read”
         setNotes(logData.notes || '');
-        setRereadCount(logData.reread_dates?.length || 0);
+
+        // Count how many ranges exist in read_ranges (an array of daterange). 
+        // logData.read_ranges might be undefined or null on first save.
+        const ranges = logData.read_ranges || [];
+        setRereadCount(Array.isArray(ranges) ? ranges.length : 0);
       }
     }
 
-    if (ficId && user?.id) fetchData();
+    if (ficId && user?.id) {
+      fetchData();
+    }
   }, [ficId, user]);
 
   const handleShelfChange = (e) => {
@@ -97,20 +120,43 @@ export default function LogFic() {
       return;
     }
 
-    const updatedShelves = status === 'read'
-      ? Array.from(new Set([...shelves, archiveShelfId.toString()]))
-      : shelves;
+    // 1) Always ensure that “read” items also get the Archive shelf
+    const updatedShelves =
+      status === 'read'
+        ? Array.from(new Set([...shelves, archiveShelfId.toString()]))
+        : shelves;
 
-    let reread_dates = readingLog?.reread_dates || [];
+    // 2) We will build or append to the `read_ranges` array (Postgres daterange[])
+    let existingRanges = readingLog?.read_ranges || []; // e.g. ["[2025-03-01,2025-03-21]", …]
+    // In Supabase JS, we'll pass read_ranges: existingRanges
+
+    // 3) Compute date_started and date_finished for the “current read”
     let finalDateStarted = dateStarted || null;
     let finalDateFinished = dateFinished || null;
 
     if (status === 'read') {
-      if (dateFinished) reread_dates.push(dateFinished);
+      // Validate that both start & finish are provided
+      if (!dateStarted || !dateFinished) {
+        alert("Please supply both a Start and a Finish date before marking as Read.");
+        return;
+      }
+      // Ensure start ≤ finish
+      if (new Date(dateStarted) > new Date(dateFinished)) {
+        alert("Date Started cannot be after Date Finished.");
+        return;
+      }
+
+      // Build a PG daterange literal: inclusive-inclusive "[start,finish]"
+      const newRangeLiteral = `[${dateStarted},${dateFinished}]`;
+
+      existingRanges = [...existingRanges, newRangeLiteral];
+
+      // Once “read” is done, we no longer store date_started/date_finished in those columns
       finalDateStarted = null;
       finalDateFinished = null;
     }
 
+    // 4) Build payload
     const logPayload = {
       user_id: user.id,
       fic_id: ficId,
@@ -118,11 +164,13 @@ export default function LogFic() {
       shelves: updatedShelves,
       date_started: finalDateStarted,
       date_finished: finalDateFinished,
-      current_chapter: status === 'currently_reading' ? currentChapter : null,
+      current_chapter:
+        status === 'currently_reading' ? currentChapter : null,
       notes: status === 'read' ? notes : null,
-      reread_dates,
+      read_ranges: existingRanges, // ← write to your new daterange[] column
     };
 
+    // 5) Upsert (insert or update) the reading_logs row
     let response;
     if (readingLog) {
       response = await supabase
@@ -140,8 +188,12 @@ export default function LogFic() {
       return;
     }
 
+    // 6) Tidy up shelf_fic join‐table
     try {
+      // Remove any existing shelf→fic link
       await supabase.from('shelf_fic').delete().eq('fic_id', ficId);
+
+      // Re‐insert each updatedShelf at the next position
       const inserts = [];
       for (const shelfId of updatedShelves) {
         const { data: maxPosData, error: maxPosError } = await supabase
@@ -156,15 +208,13 @@ export default function LogFic() {
           console.error('Error fetching max position:', maxPosError);
           continue;
         }
-
         const nextPosition = maxPosData ? maxPosData.position + 1 : 1;
-
         inserts.push({ shelf_id: shelfId, fic_id: ficId, position: nextPosition });
       }
-
       const { error } = await supabase.from('shelf_fic').insert(inserts);
       if (error) console.error('Error updating shelf_fic links:', error);
 
+      // 7) Optionally create a “post” if shareUpdate is on
       if (shareUpdate) {
         const postText = generatePostText();
         const { error: postError } = await supabase.from('posts').insert({
@@ -187,100 +237,137 @@ export default function LogFic() {
   if (!fic || !archiveShelfId) return <div>Loading...</div>;
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">{fic.title}</h1>
-      {rereadCount > 0 && (
-        <p className="text-gray-600 mb-2">
-          You’ve read this {rereadCount} time{rereadCount > 1 && 's'}.
-        </p>
-      )}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <label className="block">
-          <span>Status</span>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="block mt-1 border">
-            {READING_STATUS_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option.replace('_', ' ')}
-              </option>
-            ))}
-          </select>
-        </label>
+    <div className="min-h-screen bg-[#d3b7a4] flex justify-center items-start py-10 px-4">
+      <div className="max-w-2xl w-full bg-[#202d26] rounded-xl shadow-md p-8 text-[#d3b7a4] font-serif">
+        <h1 className="text-3xl font-semibold mb-6">{fic.title}</h1>
 
-        <label className="block">
-          <input
-            type="checkbox"
-            checked={shareUpdate}
-            onChange={(e) => setShareUpdate(e.target.checked)}
-          />{' '}
-          Share this update as a post
-        </label>
-
-        <fieldset>
-          <legend className="font-medium">Shelves</legend>
-          {allShelves.filter((shelf) => shelf.id !== archiveShelfId).map((shelf) => (
-            <label key={shelf.id} className="block">
-              <input
-                type="checkbox"
-                value={shelf.id}
-                checked={shelves.includes(shelf.id)}
-                onChange={handleShelfChange}
-              />{' '}
-              {shelf.title}
-            </label>
-          ))}
-        </fieldset>
-
-        {status === 'currently_reading' && (
-          <>
-            <label className="block">
-              <span>Date Started</span>
-              <input
-                type="date"
-                value={dateStarted}
-                onChange={(e) => setDateStarted(e.target.value)}
-                className="block mt-1 border"
-              />
-            </label>
-
-            <label className="block">
-              <span>Current Chapter</span>
-              <input
-                type="text"
-                value={currentChapter}
-                onChange={(e) => setCurrentChapter(e.target.value)}
-                className="block mt-1 border"
-              />
-            </label>
-          </>
+        {/** Show how many times this was read (i.e. length of read_ranges) */}
+        {rereadCount > 0 && (
+          <p className="mb-6 text-[#886146]">
+            You’ve read this {rereadCount} time{rereadCount > 1 && "s"}.
+          </p>
         )}
 
-        {status === 'read' && (
-          <>
-            <label className="block">
-              <span>Date Finished</span>
-              <input
-                type="date"
-                value={dateFinished}
-                onChange={(e) => setDateFinished(e.target.value)}
-                className="block mt-1 border"
-              />
-            </label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/** Status Select */}
+          <label className="block">
+            <span className="block font-semibold mb-2">Status</span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full bg-[#dfdad6] text-[#202d26] rounded-full px-3 py-2 border-2 border-[#886146] focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
+            >
+              {READING_STATUS_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option.replace("_", " ")}
+                </option>
+              ))}
+            </select>
+          </label>
 
-            <label className="block">
-              <span>Notes</span>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="block mt-1 border w-full"
-              ></textarea>
-            </label>
-          </>
-        )}
+          {/** Share Update Checkbox */}
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={shareUpdate}
+              onChange={(e) => setShareUpdate(e.target.checked)}
+              className="h-5 w-5 border-2 border-[#d3b7a4] rounded-sm checked:bg-[#886146] transition cursor-pointer"
+            />
+            <span>Share this update as a post</span>
+          </label>
 
-        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
-          Save Log
-        </button>
-      </form>
+          {/** Shelves Multi‐Select */}
+          <fieldset className="border-2 border-[#d3b7a4] rounded-md p-4">
+            <legend className="text-lg font-semibold mb-2">Shelves</legend>
+            <div className="grid grid-cols-2 gap-3">
+              {allShelves
+                .filter((shelf) => shelf.id !== archiveShelfId)
+                .map((shelf) => (
+                  <label
+                    key={shelf.id}
+                    className="flex items-center text-sm cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      value={shelf.id}
+                      checked={shelves.includes(shelf.id)}
+                      onChange={handleShelfChange}
+                      className="h-5 w-5 border-2 border-[#d3b7a4] rounded-sm mr-2 checked:bg-[#886146] transition"
+                    />
+                    {shelf.title}
+                  </label>
+                ))}
+            </div>
+          </fieldset>
+
+          {/** Currently Reading Inputs */}
+          {status === "currently_reading" && (
+            <>
+              <label className="block">
+                <span className="block font-semibold mb-2">Date Started</span>
+                <input
+                  type="date"
+                  value={dateStarted}
+                  onChange={(e) => setDateStarted(e.target.value)}
+                  className="w-full bg-[#dfdad6] text-[#202d26] rounded-full px-3 py-2 border-2 border-[#886146] focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="block font-semibold mb-2">Current Chapter</span>
+                <input
+                  type="text"
+                  value={currentChapter}
+                  onChange={(e) => setCurrentChapter(e.target.value)}
+                  className="w-full bg-[#dfdad6] text-[#202d26] rounded-full px-3 py-2 border-2 border-[#886146] focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
+                />
+              </label>
+            </>
+          )}
+
+          {/** Read Inputs (now ask for both Start & Finish) */}
+          {status === "read" && (
+            <>
+              <label className="block">
+                <span className="block font-semibold mb-2">Date Started</span>
+                <input
+                  type="date"
+                  value={dateStarted}
+                  onChange={(e) => setDateStarted(e.target.value)}
+                  className="w-full bg-[#dfdad6] text-[#202d26] rounded-full px-3 py-2 border-2 border-[#886146] focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
+                />
+              </label>
+
+              <label className="block mt-4">
+                <span className="block font-semibold mb-2">Date Finished</span>
+                <input
+                  type="date"
+                  value={dateFinished}
+                  onChange={(e) => setDateFinished(e.target.value)}
+                  className="w-full bg-[#dfdad6] text-[#202d26] rounded-full px-3 py-2 border-2 border-[#886146] focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
+                />
+              </label>
+
+              <label className="block mt-4">
+                <span className="block font-semibold mb-2">Notes</span>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="w-full bg-[#dfdad6] text-[#202d26] rounded-lg px-3 py-2 border-2 border-[#886146] h-28 resize-none focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
+                />
+              </label>
+            </>
+          )}
+
+          {/** Submit Button */}
+          <button
+            type="submit"
+            className="px-6 py-2 rounded-md text-[#202d26] font-semibold bg-[#d3b7a4] hover:bg-[#6f4b34] mx-auto block"
+          >
+            LOG FIC
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

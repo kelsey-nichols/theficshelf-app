@@ -8,8 +8,8 @@ import PrivateRoute from "./components/PrivateRoute";
 import ConfirmEmail from "./components/confirmEmail";
 import ForgotPassword from "./components/forgotPassword";
 import Tos from "./components/Tos";
-import LayoutWithNavbar from "./components/LayoutNavbar";
-import UserLayout from "./routes/UserLayout"; // ✅ NEW
+import ProtectedLayout from "./components/ProtectedLayout";
+// Removed UserLayout import
 import UserProfile from "./routes/User";
 import Discover from "./routes/Discover";
 import LogFic from "./routes/LogFic";
@@ -54,37 +54,31 @@ export const router = createBrowserRouter([
         element: (
           <PrivateRoute>
             <ProfileProtectedRoute>
-              <LayoutWithNavbar />
+              <ProtectedLayout />
             </ProfileProtectedRoute>
           </PrivateRoute>
         ),
         children: [
           { path: "bookshelf", element: <Bookshelf /> },
           { path: "discover", element: <Discover /> },
-          { path: "log-fic/:ficId", element: <LogFic /> },  
-          { path: "add-fic", element: <AddFic /> }, 
+          { path: "log-fic/:ficId", element: <LogFic /> },
+          { path: "add-fic", element: <AddFic /> },
           { path: "feed", element: <Feed /> },
           { path: "bookshelf/:shelfId", element: <ShelfPage /> },
           { path: "create-shelf", element: <CreateShelf /> },
           { path: "fic/:ficId", element: <FicPage /> },
-          { path : "/share-fic", element: <ShareFicPage /> },
-          { path : "/share-shelf", element: <ShareShelfPage /> },
-          { path : "/edit-fic/:ficId", element: <EditFic /> },
+          { path: "share-fic", element: <ShareFicPage /> },
+          { path: "share-shelf", element: <ShareShelfPage /> },
+          { path: "edit-fic/:ficId", element: <EditFic /> },
           { path: "user/:username", element: <PublicProfile /> },
 
-
-          {
-            path: "user",
-            element: <UserLayout />, 
-            children: [
-              { index: true, element: <UserProfile /> },
-              { path: "bookmarked-shelves", element: <BookmarkedShelves /> },
-
-            ],
-          },
+          // Flattened user routes without UserLayout wrapper
+          { path: "user", element: <UserProfile /> },
+          { path: "user/bookmarked-shelves", element: <BookmarkedShelves /> },
         ],
       },
     ],
   },
 ]);
+
 

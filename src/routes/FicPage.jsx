@@ -123,8 +123,9 @@ const AllUsersNotes = ({ ficId }) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  const fetchNotes = async () => {
+  const fetchNotes = async (targetPage = 1) => {
     if (!ficId) return;
+
     setLoading(true);
 
     const { data: notesData, error: notesError } = await supabase
@@ -132,7 +133,7 @@ const AllUsersNotes = ({ ficId }) => {
       .select("*")
       .eq("fic_id", ficId)
       .order("created_at", { ascending: false })
-      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+      .range((targetPage - 1) * PAGE_SIZE, targetPage * PAGE_SIZE - 1);
 
     if (notesError) {
       console.error("Error fetching notes:", notesError);
@@ -171,19 +172,33 @@ const AllUsersNotes = ({ ficId }) => {
       setHasMore(false);
     }
 
-    setNotes((prev) => [...prev, ...enrichedNotes]);
+    setNotes((prev) => {
+      const seen = new Set();
+      const combined = [...prev, ...enrichedNotes];
+      return combined.filter((note) => {
+        const key = `${note.id}-${note.created_at}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    });
+
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchNotes();
-  }, [ficId, page]);
-
+  // Reset notes when ficId changes
   useEffect(() => {
     setNotes([]);
     setPage(1);
     setHasMore(true);
   }, [ficId]);
+
+  // Fetch notes when ficId or page changes
+  useEffect(() => {
+    if (ficId) {
+      fetchNotes(page);
+    }
+  }, [ficId, page]);
 
   const loadMore = () => {
     if (!loading && hasMore) setPage((p) => p + 1);
@@ -198,19 +213,21 @@ const AllUsersNotes = ({ ficId }) => {
           key={note.id}
           className="mb-6 border-b border-gray-200 pb-4 last:border-0"
         >
-          <p className="whitespace-pre-wrap font-serif text-[#d5baa9] mb-2">
+          <p className="whitespace-pre-wrap font-serif text-[#202d26] mb-2">
             {note.notes?.trim() || ""}
           </p>
 
-          <div className="text-sm text-gray-500">
-            <span className="font-semibold text-black">
+          <div className="text-sm text-[#886146]">
+            <span className="font-semibold text-[#202d26]">
               {note.profile?.display_name || "Unknown"}
             </span>{" "}
-            <span className="text-gray-400">
+            <span className="text-[#886146]">
               @{note.profile?.username || "user"}
             </span>{" "}
             ·{" "}
-            {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+            {formatDistanceToNow(new Date(note.created_at), {
+              addSuffix: true,
+            })}
           </div>
         </div>
       ))}
@@ -228,6 +245,8 @@ const AllUsersNotes = ({ ficId }) => {
     </div>
   );
 };
+
+
 
 const FicPage = () => {
   const { ficId } = useParams();
@@ -351,111 +370,134 @@ const FicPage = () => {
     {/* ─── BUTTON ROW ─── */}
     <div
       style={{
+        position: "relative", // needed for the absolute menu
         display: "flex",
-        justifyContent: "space-between",
+        justifyContent: "flex-end", // move button to the right
         alignItems: "center",
         marginBottom: "1rem",
       }}
     >
-      {/* Back Button (left side) */}
-      <button
-        onClick={() => navigate(-1)}
-        aria-label="Go back"
-        style={{
-          backgroundColor: "#d5baa9",
-          padding: "0.3rem",
-          border: "none",
-          borderRadius: "6px",
-          cursor: "pointer",
-        }}
-      >
-        <ChevronLeft size={30} color="#202d26" />
-      </button>
 
-      {/* Menu Button (right side), now dark‐green */}
-      <button
-        onClick={toggleMenu}
-        aria-label="Open fic actions menu"
-        style={{
-          background: "transparent",
-          border: "none",
-          color: "#202d26",    // dark‐green so it doesn’t blend into #d3b7a4
-          cursor: "pointer",
-          padding: "0.3rem",
-        }}
-      >
-        <MoreVertical size={24} />
-      </button>
+      {/* Menu Toggle Button (top-right) */}
+<button
+  onClick={toggleMenu}
+  aria-label="Open fic actions menu"
+  style={{
+    background: "transparent",
+    border: "none",
+    color: "#202d26",
+    cursor: "pointer",
+    padding: "0.3rem",
+  }}
+>
+  <MoreVertical size={24} />
+</button>
 
-      {menuOpen && (
-        <div
-          style={{
-            position: "absolute",
-            top: "3.5rem",         // just below the button row
-            right: "1rem",
-            backgroundColor: "#1a1a1a",
-            border: "1px solid #333",
-            borderRadius: "4px",
-            padding: "0.5rem",
-            zIndex: 100,
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.5rem",
-            minWidth: "150px",
-          }}
-        >
-          <button
-            onClick={() => navigate(`/log-fic/${fic.id}`, { state: { fic } })}
-            style={{
-              backgroundColor: "#3d9970",
-              color: "#fff",
-              border: "none",
-              padding: "0.5rem",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            Log Fic
-          </button>
-          <button
-            onClick={() => navigate("/share-fic", { state: { fic } })}
-            style={{
-              backgroundColor: "#0074D9",
-              color: "#fff",
-              border: "none",
-              padding: "0.5rem",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            Share Fic
-          </button>
-          <button
-            onClick={() =>
-              navigate(`/edit-fic/${fic.id}`, { state: { fic } })
-            }
-            disabled={!canEdit}
-            title={
-              !canEdit
-                ? "You can only edit this fic 7 days after its last update"
-                : ""
-            }
-            style={{
-              backgroundColor: canEdit ? "#FF851B" : "#555",
-              color: "#fff",
-              border: "none",
-              padding: "0.5rem",
-              borderRadius: "4px",
-              cursor: canEdit ? "pointer" : "not-allowed",
-              fontFamily: "inherit",
-            }}
-          >
-            Edit Fic
-          </button>
-        </div>
-      )}
+{menuOpen && (
+  <div
+    style={{
+      position: "absolute",
+      top: "100%",
+      right: 0,
+      backgroundColor: "#1a1a1a",
+      border: "1px solid #333",
+      borderRadius: "4px",
+      padding: "0.5rem",
+      marginTop: "0.25rem",
+      zIndex: 1000,
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.5rem",
+      minWidth: "160px",
+    }}
+  >
+    <button
+      onClick={() => navigate(`/log-fic/${fic.id}`, { state: { fic } })}
+      style={{
+        backgroundColor: "#d5baa9",
+        color: "#202d26",
+        border: "1px solid #202d26",
+        padding: "0.5rem 1rem",
+        borderRadius: "6px",
+        cursor: "pointer",
+        fontFamily: "serif",
+        fontWeight: "bold",
+        transition: "background-color 0.2s ease, color 0.2s ease",
+      }}
+      onMouseOver={(e) => {
+        e.currentTarget.style.backgroundColor = "#202d26";
+        e.currentTarget.style.color = "#d5baa9";
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.backgroundColor = "#d5baa9";
+        e.currentTarget.style.color = "#202d26";
+      }}
+    >
+      Log Fic
+    </button>
+
+    <button
+      onClick={() => navigate("/share-fic", { state: { fic } })}
+      style={{
+        backgroundColor: "#d5baa9",
+        color: "#202d26",
+        border: "1px solid #202d26",
+        padding: "0.5rem 1rem",
+        borderRadius: "6px",
+        cursor: "pointer",
+        fontFamily: "serif",
+        fontWeight: "bold",
+        transition: "background-color 0.2s ease, color 0.2s ease",
+      }}
+      onMouseOver={(e) => {
+        e.currentTarget.style.backgroundColor = "#202d26";
+        e.currentTarget.style.color = "#d5baa9";
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.backgroundColor = "#d5baa9";
+        e.currentTarget.style.color = "#202d26";
+      }}
+    >
+      Share Fic
+    </button>
+
+    <button
+      onClick={() => navigate(`/edit-fic/${fic.id}`, { state: { fic } })}
+      disabled={!canEdit}
+      title={
+        !canEdit
+          ? "You can only edit this fic 7 days after its last update"
+          : ""
+      }
+      style={{
+        backgroundColor: canEdit ? "#d5baa9" : "#555",
+        color: canEdit ? "#202d26" : "#ccc",
+        border: "1px solid #202d26",
+        padding: "0.5rem 1rem",
+        borderRadius: "6px",
+        cursor: canEdit ? "pointer" : "not-allowed",
+        fontFamily: "serif",
+        fontWeight: "bold",
+        opacity: canEdit ? 1 : 0.6,
+        transition: "background-color 0.2s ease, color 0.2s ease",
+      }}
+      onMouseOver={(e) => {
+        if (canEdit) {
+          e.currentTarget.style.backgroundColor = "#202d26";
+          e.currentTarget.style.color = "#d5baa9";
+        }
+      }}
+      onMouseOut={(e) => {
+        if (canEdit) {
+          e.currentTarget.style.backgroundColor = "#d5baa9";
+          e.currentTarget.style.color = "#202d26";
+        }
+      }}
+    >
+      Edit Fic
+    </button>
+  </div>
+)}
     </div>
     
       {/* 2) Fic Info Header (no longer sticky), background #202d26 */}
