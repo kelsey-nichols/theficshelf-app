@@ -26,6 +26,8 @@ import ShareShelfPage from "./routes/ShareShelf";
 import EditFic from "./routes/EditFic";
 import PublicProfile from "./routes/PublicProfile";
 import NotificationsPage from "./routes/Notifications";
+import ContactUsPage from "./components/ContactUs";
+import AdminPanel from "./routes/AdminPanel";
 
 export const router = createBrowserRouter([
   {
@@ -39,6 +41,7 @@ export const router = createBrowserRouter([
       { path: "confirm-email", element: <ConfirmEmail /> },
       { path: "forgot-password", element: <ForgotPassword /> },
       { path: "terms", element: <Tos /> },
+      { path: "contact", element: <ContactUsPage /> },
 
       // Logged in users who may not have completed profile yet
       {
@@ -75,6 +78,7 @@ export const router = createBrowserRouter([
           { path: "user", element: <UserProfile /> },
           { path: "user/bookmarked-shelves", element: <BookmarkedShelves /> },
           { path: "notifications", element: <NotificationsPage /> },
+          { path: "admin", element: <AdminPanel /> },
           
         ],
       },
