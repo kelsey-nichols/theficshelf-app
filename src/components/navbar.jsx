@@ -1,4 +1,4 @@
-import { LibraryBig, Search, BookmarkPlus, Bookmark, Newspaper, User, LogOut } from "lucide-react";
+import { LibraryBig, Search, BookmarkPlus, Bookmark, Newspaper, User, LogOut, Bell } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserAuth } from "../context/AuthContext";
 import MobileNavbar from "./MobileNavbar";
@@ -8,8 +8,10 @@ const tabs = [
   { id: "discover", icon: Search, label: "discover", path: "/discover" },
   { id: "add-fic", icon: BookmarkPlus, label: "add fic", path: "/add-fic" },
   { id: "feed", icon: Newspaper, label: "feed", path: "/feed" },
+  { id: "notifications", icon: Bell, label: "notifications", path: "/notifications" },
   { id: "user", icon: User, label: "user", path: "/user" },
   { id: "bookmarked-shelves", icon: Bookmark, label: "bookmarks", path: "/user/bookmarked-shelves" },
+  
 ];
 
 export default function Navbar() {

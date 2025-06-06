@@ -25,6 +25,7 @@ import ShareFicPage from "./routes/ShareFic";
 import ShareShelfPage from "./routes/ShareShelf";
 import EditFic from "./routes/EditFic";
 import PublicProfile from "./routes/PublicProfile";
+import NotificationsPage from "./routes/Notifications";
 
 export const router = createBrowserRouter([
   {
@@ -71,10 +72,10 @@ export const router = createBrowserRouter([
           { path: "share-shelf", element: <ShareShelfPage /> },
           { path: "edit-fic/:ficId", element: <EditFic /> },
           { path: "user/:username", element: <PublicProfile /> },
-
-          // Flattened user routes without UserLayout wrapper
           { path: "user", element: <UserProfile /> },
           { path: "user/bookmarked-shelves", element: <BookmarkedShelves /> },
+          { path: "notifications", element: <NotificationsPage /> },
+          
         ],
       },
     ],

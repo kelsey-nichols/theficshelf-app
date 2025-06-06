@@ -60,55 +60,55 @@ const UserProfile = () => {
     fetchProfileData();
   }, [session]);
 
+  // Corrected useEffect for words read
   useEffect(() => {
     const fetchWordsRead = async () => {
       if (!session?.user?.id) return;
 
       try {
-        const { data: shelfData, error: shelfError } = await supabase
-          .from("shelves")
-          .select("id")
-          .eq("user_id", session.user.id)
-          .eq("title", "Archive")
-          .single();
+        // Step 1: get all reading logs for user (all time)
+        const { data: logs, error: logsError } = await supabase
+          .from("reading_logs")
+          .select("fic_id, read_ranges")
+          .eq("user_id", session.user.id);
 
-        if (shelfError || !shelfData) {
-          console.warn("Archive shelf not found.");
-          return;
-        }
-
-        const archiveShelfId = shelfData.id;
-
-        const { data: shelfFics, error: shelfFicsError } = await supabase
-          .from("shelf_fic")
-          .select("fic_id")
-          .eq("shelf_id", archiveShelfId);
-
-        if (shelfFicsError) throw shelfFicsError;
-
-        const ficIds = shelfFics.map((item) => item.fic_id);
-
-        if (ficIds.length === 0) {
+        if (logsError) throw logsError;
+        if (!logs || logs.length === 0) {
           setWordsRead(0);
           return;
         }
 
+        // Step 2: get unique fic IDs to reduce redundant queries
+        const uniqueFicIds = [...new Set(logs.map((log) => log.fic_id))];
+
+        // Step 3: fetch word counts for all fics
         const { data: ficsData, error: ficsError } = await supabase
           .from("fics")
-          .select("words")
-          .in("id", ficIds);
+          .select("id, words")
+          .in("id", uniqueFicIds);
 
         if (ficsError) throw ficsError;
 
-        const totalWords = ficsData.reduce((sum, fic) => sum + (fic.words || 0), 0);
+        // Map fic_id => words
+        const wordsMap = new Map(ficsData.map((fic) => [fic.id, fic.words || 0]));
+
+        // Step 4: sum words * number of rereads (length of read_ranges array)
+        const totalWords = logs.reduce((sum, log) => {
+          const words = wordsMap.get(log.fic_id) || 0;
+          const rereadCount = Array.isArray(log.read_ranges) ? log.read_ranges.length : 0;
+          return sum + words * rereadCount;
+        }, 0);
+
         setWordsRead(totalWords);
       } catch (err) {
-        console.error("Error fetching word count:", err.message);
+        console.error("Error calculating words read:", err.message);
+        setWordsRead(0);
       }
     };
 
     fetchWordsRead();
   }, [session]);
+
 
   const handleEditToggle = () => {
     setEditing(!editing);
