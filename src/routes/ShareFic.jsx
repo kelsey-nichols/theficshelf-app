@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
-import { ChevronLeft } from "lucide-react";  // Import the icon
 
 const ShareFicPage = () => {
   const location = useLocation();
@@ -14,8 +13,10 @@ const ShareFicPage = () => {
     return <p>Missing fic data. Return to previous page.</p>;
   }
 
-  const handlePost = async () => {
+  const handlePost = async (e) => {
+    e.preventDefault();
     setSubmitting(true);
+
     const { data: userData, error: userError } = await supabase.auth.getUser();
 
     if (userError || !userData?.user?.id) {
@@ -42,73 +43,55 @@ const ShareFicPage = () => {
   };
 
   return (
-    <div style={{ padding: "1.5rem", color: "#d5baa9", fontFamily: "serif" }}>
-      
-      {/* Back button */}
-      <button
-        onClick={() => navigate(-1)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          background: "none",
-          border: "none",
-          color: "#d5baa9",
-          cursor: "pointer",
-          marginBottom: "1rem",
-          padding: 0,
-          fontSize: "1rem",
-          fontWeight: "bold",
-        }}
-        aria-label="Go back"
+    <div className="min-h-screen bg-[#d3b7a4] flex justify-center items-start py-10 px-4">
+      <form
+        onSubmit={handlePost}
+        className="max-w-2xl w-full bg-[#2d261e] text-[#d3b7a4] shadow-md space-y-6 font-serif rounded-xl p-8"
       >
-        <ChevronLeft size={20} />
-        Back
-      </button>
+        <h2 className="text-3xl font-semibold text-[#d3b7a4] mb-4">
+          share fic
+        </h2>
 
-      <h2>Share Fic</h2>
+        {/* Fic Info */}
+        <div className="bg-[#946241] p-4 rounded-lg">
+          <h3 className="text-xl font-semibold">{fic.title}</h3>
+          <p className="italic text-sm text-[#202d26] mb-2">
+            by {fic.author || "Unknown"}
+          </p>
+          <p className="text-sm text-[#202d26] whitespace-pre-wrap">
+            {fic.summary || "(No summary provided)"}
+          </p>
+        </div>
 
-      <div style={{ backgroundColor: "#202d26", padding: "1rem", borderRadius: "6px", marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>{fic.title}</h3>
-        <p style={{ fontStyle: "italic", marginBottom: "0.5rem" }}>
-          by {fic.author || "Unknown"}
-        </p>
-        <p style={{ whiteSpace: "pre-wrap" }}>
-          {fic.summary || "(No summary provided)"}
-        </p>
-      </div>
+        {/* Thoughts */}
+        <div>
+          <label className="block mb-2 font-medium text-[#d3b7a4]">
+            create post
+          </label>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={6}
+            placeholder="Add your thoughts here."
+            className="w-full bg-[#d3b7a4] border-2 border-[#444] rounded-lg px-3 py-2 text-sm text-[#202d26] resize-y focus:outline-none focus:ring-2 focus:ring-[#886146]"
+          />
+        </div>
 
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        rows={6}
-        placeholder="Add your thoughts..."
-        style={{
-          width: "100%",
-          padding: "0.75rem",
-          borderRadius: "4px",
-          fontFamily: "inherit",
-          resize: "vertical",
-          backgroundColor: "#2f3f36",
-          color: "#d5baa9",
-          border: "1px solid #444",
-          marginBottom: "1rem",
-        }}
-      />
-
-      <button
-        onClick={handlePost}
-        disabled={submitting || content.trim() === ""}
-        style={{
-          backgroundColor: "#3d9970",
-          color: "#fff",
-          padding: "0.5rem 1rem",
-          border: "none",
-          borderRadius: "4px",
-          cursor: submitting ? "not-allowed" : "pointer",
-        }}
-      >
-        {submitting ? "Posting..." : "Share to Feed"}
-      </button>
+        {/* Submit */}
+        <div className="flex justify-center mt-6">
+          <button
+            type="submit"
+            disabled={submitting || content.trim() === ""}
+            className={`px-6 py-2 rounded-md text-[#202d26] font-semibold ${
+              submitting || content.trim() === ""
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#d3b7a4] hover:bg-[#6f4b34]"
+            }`}
+          >
+            {submitting ? "Posting..." : "SHARE TO FEED"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

@@ -36,7 +36,8 @@ const ShareShelfPage = () => {
     fetchOwnerName();
   }, [shelf.user_id]);
 
-  const handlePost = async () => {
+  const handlePost = async (e) => {
+    e.preventDefault();
     setSubmitting(true);
     const { data: userData, error: userError } = await supabase.auth.getUser();
 
@@ -64,79 +65,52 @@ const ShareShelfPage = () => {
   };
 
   return (
-    <div style={{ padding: "1.5rem", color: "#d5baa9", fontFamily: "serif" }}>
-      
-      {/* Back button */}
-      <button
-        onClick={() => navigate(-1)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          background: "none",
-          border: "none",
-          color: "#d5baa9",
-          cursor: "pointer",
-          marginBottom: "1rem",
-          padding: 0,
-          fontSize: "1rem",
-          fontWeight: "bold",
-        }}
-        aria-label="Go back"
-      >
-        <ChevronLeft size={20} />
-        Back
-      </button>
+  <div className="min-h-screen bg-[#d3b7a4] flex justify-center items-start py-10 px-4">
+    <form
+      onSubmit={handlePost}
+      className="max-w-2xl w-full bg-[#2d261e] text-[#d3b7a4] shadow-md space-y-6 font-serif rounded-xl p-8"
+    >
+      <h2 className="text-3xl font-semibold text-[#d3b7a4] mb-4">
+        share shelf
+      </h2>
 
-      <h2>Share Shelf</h2>
-
-      <div
-        style={{
-          backgroundColor: "#202d26",
-          padding: "1rem",
-          borderRadius: "6px",
-          marginBottom: "1rem",
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>{shelf.title}</h3>
-        <p style={{ fontStyle: "italic", marginBottom: "0.5rem" }}>
-          by {ownerName}
-        </p>
+      {/* Shelf Info */}
+      <div className="bg-[#946241] p-4 rounded-lg">
+        <h3 className="text-xl font-semibold">{shelf.title}</h3>
+        <p className="italic text-sm text-[#202d26]">by {ownerName}</p>
       </div>
 
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        rows={6}
-        placeholder="Add your thoughts..."
-        style={{
-          width: "100%",
-          padding: "0.75rem",
-          borderRadius: "4px",
-          fontFamily: "inherit",
-          resize: "vertical",
-          backgroundColor: "#2f3f36",
-          color: "#d5baa9",
-          border: "1px solid #444",
-          marginBottom: "1rem",
-        }}
-      />
+      {/* Thoughts */}
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">
+          create post
+        </label>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={6}
+          placeholder="Add your thoughts here."
+          className="w-full bg-[#d3b7a4] border-2 border-[#444] rounded-lg px-3 py-2 text-sm text-[#202d26] resize-y focus:outline-none focus:ring-2 focus:ring-[#886146]"
+        />
+      </div>
 
-      <button
-        onClick={handlePost}
-        disabled={submitting || content.trim() === ""}
-        style={{
-          backgroundColor: "#3d9970",
-          color: "#fff",
-          padding: "0.5rem 1rem",
-          border: "none",
-          borderRadius: "4px",
-          cursor: submitting ? "not-allowed" : "pointer",
-        }}
-      >
-        {submitting ? "Posting..." : "Share to Feed"}
-      </button>
-    </div>
-  );
+      {/* Submit */}
+      <div className="flex justify-center mt-6">
+        <button
+          type="submit"
+          disabled={submitting || content.trim() === ""}
+          className={`px-6 py-2 rounded-md text-[#202d26] font-semibold ${
+            submitting || content.trim() === ""
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-[#d3b7a4] hover:bg-[#6f4b34]"
+          }`}
+        >
+          {submitting ? "Posting..." : "SHARE TO FEED"}
+        </button>
+      </div>
+    </form>
+  </div>
+);
 };
 
 export default ShareShelfPage;
