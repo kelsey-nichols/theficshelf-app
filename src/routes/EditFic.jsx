@@ -239,56 +239,76 @@ const EditFic = () => {
   if (isLoading) return <p>Loading fic data...</p>;
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 700, margin: 'auto', padding: 20, fontFamily: 'Arial, sans-serif' }}>
-      <h2>Edit Fic Information</h2>
+  <div className="min-h-screen bg-[#d3b7a4] flex justify-center items-start py-10 px-4">
+    <form
+      onSubmit={handleSubmit}
+      className="max-w-2xl w-full bg-[#202d26] text-[#d3b7a4] shadow-md space-y-6 font-serif rounded-xl p-8"
+    >
+      <h2 className="text-3xl font-semibold text-[#d3b7a4] mb-6">
+        Edit Fic Information
+      </h2>
+      <p className="text-xs text-[#826555]">
+        Note: Editing a fic updates it for all users—please make sure your
+        changes match the AO3 source exactly.
+      </p>
 
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Fic Link:
+      {/* Fic Link */}
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Fic Link:</label>
         <input
           type="text"
           value={formData.link}
-          onChange={(e) => handleChange('link', e.target.value)}
+          onChange={(e) => {
+            const raw = e.target.value.trim().toLowerCase();
+            const cleaned = raw.replace(/^https?:\/\//, "").replace(/^www\./, "");
+            handleChange("link", cleaned);
+          }}
           required
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
+          className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         />
-      </label>
+      </div>
 
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Title:
+      {/* Title */}
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Title:</label>
         <input
           type="text"
           value={formData.title}
-          onChange={(e) => handleChange('title', e.target.value)}
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
+          onChange={(e) => handleChange("title", e.target.value)}
+          className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         />
-      </label>
+      </div>
 
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Author:
+      {/* Author */}
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Author:</label>
         <input
           type="text"
           value={formData.author}
-          onChange={(e) => handleChange('author', e.target.value)}
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
+          onChange={(e) => handleChange("author", e.target.value)}
+          className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         />
-      </label>
+      </div>
 
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Summary:
+      {/* Summary */}
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Summary:</label>
         <textarea
           value={formData.summary}
-          onChange={(e) => handleChange('summary', e.target.value)}
-          style={{ width: '100%', padding: 8, marginTop: 4, minHeight: 80 }}
+          onChange={(e) => handleChange("summary", e.target.value)}
+          rows={4}
+          className="w-full resize-y bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         />
-      </label>
+      </div>
 
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Rating:
+      {/* Rating */}
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Rating:</label>
         <select
           value={formData.rating}
-          onChange={(e) => handleChange('rating', e.target.value)}
+          onChange={(e) => handleChange("rating", e.target.value)}
           required
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
+          className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         >
           <option value="">Select a rating</option>
           <option value="General Audiences">General Audiences</option>
@@ -297,15 +317,16 @@ const EditFic = () => {
           <option value="Explicit">Explicit</option>
           <option value="Not Rated">Not Rated</option>
         </select>
-      </label>
+      </div>
 
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Category:
+      {/* Category */}
+      <div>
+        <label className="block mb-2 font-medium text-[#d3b7a4]">Category:</label>
         <select
           value={formData.category}
-          onChange={(e) => handleChange('category', e.target.value)}
+          onChange={(e) => handleChange("category", e.target.value)}
           required
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
+          className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
         >
           <option value="">Select a category</option>
           <option value="F/F">F/F</option>
@@ -315,164 +336,122 @@ const EditFic = () => {
           <option value="Multi">Multi</option>
           <option value="Other">Other</option>
         </select>
-      </label>
+      </div>
 
-      {/* Archive Warnings - checkbox group */}
-      <fieldset style={{ marginBottom: 20 }}>
-        <legend>Archive Warnings</legend>
-        {['No Archive Warnings Apply', 'Graphic Depictions of Violence', 'Major Character Death', 'Rape/Non-Con', 'Underage'].map((warning) => (
-          <label key={warning} style={{ display: 'block' }}>
-            <input
-              type="checkbox"
-              checked={formData.archive_warning.includes(warning)}
-              onChange={(e) => {
-                let newWarnings = [...formData.archive_warning];
-                if (e.target.checked) {
-                  if (warning === 'No Archive Warnings Apply') {
-                    newWarnings = [warning];
+      {/* Archive Warnings */}
+      <fieldset className="border border-[#d3b7a4] rounded-md p-4">
+        <legend className="text-lg font-medium mb-2 text-[#d3b7a4]">
+          Archive Warnings
+        </legend>
+        <div className="space-y-2">
+          {[
+            "No Archive Warnings Apply",
+            "Graphic Depictions Of Violence",
+            "Major Character Death",
+            "Rape/Non-Con",
+            "Underage",
+          ].map((warning) => (
+            <label
+              key={warning}
+              className="flex items-center text-[#d3b7a4] text-sm"
+            >
+              <input
+                type="checkbox"
+                checked={formData.archive_warning.includes(warning)}
+                onChange={(e) => {
+                  let newWarnings = [...formData.archive_warning];
+                  if (e.target.checked) {
+                    if (warning === "No Archive Warnings Apply") {
+                      newWarnings = [warning];
+                    } else {
+                      newWarnings = newWarnings.filter(
+                        (w) => w !== "No Archive Warnings Apply"
+                      );
+                      newWarnings.push(warning);
+                    }
                   } else {
-                    newWarnings = newWarnings.filter((w) => w !== 'No Archive Warnings Apply');
-                    newWarnings.push(warning);
+                    newWarnings = newWarnings.filter((w) => w !== warning);
                   }
-                } else {
-                  newWarnings = newWarnings.filter((w) => w !== warning);
-                }
-                handleChange('archive_warning', newWarnings);
-              }}
-            />
-            {warning}
-          </label>
-        ))}
+                  handleChange("archive_warning", newWarnings);
+                }}
+                className="appearance-none h-5 w-5 border-2 border-[#d3b7a4] rounded-sm mr-3 checked:bg-[#886146] checked:border-[#d3b7a4] focus:outline-none cursor-pointer transition"
+              />
+              {warning}
+            </label>
+          ))}
+        </div>
       </fieldset>
 
-      {/* Fandoms */}
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Fandoms:
-        <AsyncCreatableSelect
-          isMulti
-          cacheOptions
-          defaultOptions
-          value={formData.fandoms}
-          loadOptions={(input) => loadOptions('fandoms', input)}
-          onChange={(vals) => handleChange('fandoms', vals || [])}
-          styles={{ menu: (base) => ({ ...base, zIndex: 9999 }) }}
-        />
-      </label>
+      {/* Async Selects */}
+      {[
+        ["Fandoms", "fandoms"],
+        ["Relationships", "relationships"],
+        ["Characters", "characters"],
+        ["Tags", "tags"],
+      ].map(([label, field]) => (
+        <div key={field}>
+          <label className="block mb-2 font-medium text-[#d3b7a4]">{label}:</label>
+          <AsyncCreatableSelect
+            isMulti
+            cacheOptions
+            defaultOptions
+            value={formData[field]}
+            loadOptions={(input) => loadOptions(field, input)}
+            onChange={(vals) => handleChange(field, vals || [])}
+            styles={{ menu: (base) => ({ ...base, zIndex: 9999 }) }}
+          />
+        </div>
+      ))}
 
-      {/* Relationships */}
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Relationships:
-        <AsyncCreatableSelect
-          isMulti
-          cacheOptions
-          defaultOptions
-          value={formData.relationships}
-          loadOptions={(input) => loadOptions('relationships', input)}
-          onChange={(vals) => handleChange('relationships', vals || [])}
-          styles={{ menu: (base) => ({ ...base, zIndex: 9999 }) }}
-        />
-      </label>
+      {/* Numeric Inputs */}
+      {[
+        ["Words", "words"],
+        ["Chapters", "chapters"],
+        ["Hits", "hits"],
+        ["Kudos", "kudos"],
+      ].map(([label, key]) => (
+        <div key={key}>
+          <label className="block mb-2 font-medium text-[#d3b7a4]">{label}:</label>
+          <input
+            type={key === "chapters" ? "text" : "number"}
+            min={key !== "chapters" ? "0" : undefined}
+            value={formData[key]}
+            onChange={(e) => handleChange(key, e.target.value)}
+            className="w-full bg-[#dfdad6] border-2 placeholder-[#886146] border-[#886146] text-[#202d26] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
+          />
+        </div>
+      ))}
 
-      {/* Characters */}
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Characters:
-        <AsyncCreatableSelect
-          isMulti
-          cacheOptions
-          defaultOptions
-          value={formData.characters}
-          loadOptions={(input) => loadOptions('characters', input)}
-          onChange={(vals) => handleChange('characters', vals || [])}
-          styles={{ menu: (base) => ({ ...base, zIndex: 9999 }) }}
-        />
-      </label>
-
-      {/* Tags */}
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Tags:
-        <AsyncCreatableSelect
-          isMulti
-          cacheOptions
-          defaultOptions
-          value={formData.tags}
-          loadOptions={(input) => loadOptions('tags', input)}
-          onChange={(vals) => handleChange('tags', vals || [])}
-          styles={{ menu: (base) => ({ ...base, zIndex: 9999 }) }}
-        />
-      </label>
-
-      {/* Numbers */}
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Words:
-        <input
-          type="number"
-          min="0"
-          value={formData.words}
-          onChange={(e) => handleChange('words', e.target.value)}
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
-        />
-      </label>
-
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Chapters:
-        <input
-          type="text"
-          value={formData.chapters}
-          onChange={(e) => handleChange('chapters', e.target.value)}
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
-        />
-      </label>
-
-      <label style={{ display: 'block', marginBottom: 10 }}>
-        Hits:
-        <input
-          type="number"
-          min="0"
-          value={formData.hits}
-          onChange={(e) => handleChange('hits', e.target.value)}
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
-        />
-      </label>
-
-      <label style={{ display: 'block', marginBottom: 20 }}>
-        Kudos:
-        <input
-          type="number"
-          min="0"
-          value={formData.kudos}
-          onChange={(e) => handleChange('kudos', e.target.value)}
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
-        />
-      </label>
-
-      <label style={{ display: 'block', marginBottom: 20 }}>
+      {/* Confirmation */}
+      <div className="flex items-center space-x-2">
         <input
           type="checkbox"
           checked={confirmationChecked}
           onChange={(e) => setConfirmationChecked(e.target.checked)}
-          required
-          style={{ marginRight: 8 }}
+          className="h-5 w-5 border-2 border-[#d3b7a4] rounded-sm checked:bg-[#886146] transition cursor-pointer"
         />
-        I confirm that these changes affect all users and the information matches the AO3 source exactly.
-      </label>
+        <span className="text-sm text-[#d3b7a4]">
+          I confirm these changes affect all users and match AO3 exactly.
+        </span>
+      </div>
 
-      <button
-        type="submit"
-        disabled={!confirmationChecked}
-        style={{
-          padding: '10px 20px',
-          backgroundColor: confirmationChecked ? '#0070f3' : '#ccc',
-          color: 'white',
-          border: 'none',
-          cursor: confirmationChecked ? 'pointer' : 'not-allowed',
-          borderRadius: 4,
-          fontSize: 16,
-        }}
-      >
-        Save Changes
-      </button>
+      {/* Submit */}
+      <div className="flex justify-center mt-6">
+        <button
+          type="submit"
+          disabled={!confirmationChecked}
+          className={`px-6 py-2 rounded-md text-[#202d26] font-semibold ${
+            confirmationChecked
+              ? "bg-[#d3b7a4] hover:bg-[#6f4b34]"
+              : "bg-gray-400 cursor-not-allowed"
+          }`}
+        >
+          Save Changes
+        </button>
+      </div>
     </form>
-  );
+  </div>
+);
 };
 
 export default EditFic;

@@ -257,6 +257,9 @@ return (
       className="max-w-2xl w-full bg-[#202d26] text-[#d3b7a4] shadow-md space-y-6 font-serif rounded-xl p-8"
     >
       <h2 className="text-3xl font-semibold text-[#d3b7a4] mb-6">add a new fic</h2>
+      <p className="text-xs text-[#826555]">
+        Note: Adding a fic creates it for all users, so please fill out this form as accurately as possible. If the fic already exists in the fic shelf, the form will autofill when you enter a link—just review the information and submit. If the fic is incomplete you can input '?' for chapter number.
+      </p>
 
       {/* Fic Link */}
       <div>
@@ -427,6 +430,7 @@ return (
           />
         </div>
       ))}
+
 
       {/* Submit Button */}
       <div className="flex justify-center mt-6">

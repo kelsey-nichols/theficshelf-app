@@ -243,7 +243,7 @@ export default function LogFic() {
 
         {/** Show how many times this was read (i.e. length of read_ranges) */}
         {rereadCount > 0 && (
-          <p className="mb-6 text-[#886146]">
+          <p className="mb-6 text-[#826555]">
             You’ve read this {rereadCount} time{rereadCount > 1 && "s"}.
           </p>
         )}
@@ -271,12 +271,12 @@ export default function LogFic() {
               type="checkbox"
               checked={shareUpdate}
               onChange={(e) => setShareUpdate(e.target.checked)}
-              className="h-5 w-5 border-2 border-[#d3b7a4] rounded-sm checked:bg-[#886146] transition cursor-pointer"
+              className="h-5 w-5 appearance-none rounded-sm bg-[#d3b7a4] border-2 border-[#d3b7a4] checked:bg-[#886146] checked:border-[#886146] transition cursor-pointer flex-shrink-0"
             />
             <span>Share this update as a post</span>
           </label>
 
-          {/** Shelves Multi‐Select */}
+          {/** Shelves Multi-Select */}
           <fieldset className="border-2 border-[#d3b7a4] rounded-md p-4">
             <legend className="text-lg font-semibold mb-2">Shelves</legend>
             <div className="grid grid-cols-2 gap-3">
@@ -285,16 +285,16 @@ export default function LogFic() {
                 .map((shelf) => (
                   <label
                     key={shelf.id}
-                    className="flex items-center text-sm cursor-pointer"
+                    className="flex items-center text-sm cursor-pointer space-x-2"
                   >
                     <input
                       type="checkbox"
                       value={shelf.id}
                       checked={shelves.includes(shelf.id)}
                       onChange={handleShelfChange}
-                      className="h-5 w-5 border-2 border-[#d3b7a4] rounded-sm mr-2 checked:bg-[#886146] transition"
+                      className="h-5 w-5 appearance-none rounded-sm bg-[#d3b7a4] border-2 border-[#d3b7a4] checked:bg-[#886146] checked:border-[#886146] transition cursor-pointer flex-shrink-0"
                     />
-                    {shelf.title}
+                    <span>{shelf.title}</span>
                   </label>
                 ))}
             </div>
@@ -356,6 +356,9 @@ export default function LogFic() {
                   className="w-full bg-[#dfdad6] text-[#202d26] rounded-lg px-3 py-2 border-2 border-[#886146] h-28 resize-none focus:outline-none focus:ring-2 focus:ring-[#d3b7a4]"
                 />
               </label>
+              <p className="text-xs text-[#826555]">
+                Please don’t leave a note unless you’ve already left kudos and comments on the original work—this isn’t a replacement for interacting with the author. Also, please refrain from “rating” fics here; use this space for your own thoughts. All notes are public on the fic’s page so either refrain from spoilers or tag them accordingly.
+              </p>
             </>
           )}
 

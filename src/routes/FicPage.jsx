@@ -205,7 +205,7 @@ const AllUsersNotes = ({ ficId }) => {
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 font-sans text-gray-800 text-left">
+    <div className="max-w-xl mx-auto px-4 py-6 font-serif text-[#202d26] text-left">
       {notes.length === 0 && !loading && <p>No notes found.</p>}
 
       {notes.map((note) => (
@@ -358,42 +358,18 @@ const FicPage = () => {
   const fullFicUrl = makeFullUrl(fic.link);
 
   return (
-    <div
-    style={{
-      minHeight: "100vh",
-      backgroundColor: "#d3b7a4",
-      fontFamily: "serif",
-      padding: "1rem",
-      position: "relative",
-    }}
-  >
+    <div className="min-h-screen bg-[#d3b7a4] font-serif p-6 relative">
     {/* ─── BUTTON ROW ─── */}
-    <div
-      style={{
-        position: "relative", // needed for the absolute menu
-        display: "flex",
-        justifyContent: "flex-end", // move button to the right
-        alignItems: "center",
-        marginBottom: "1rem",
-      }}
-    >
+    <div className="relative flex justify-end mb-4">
+      <button
+        onClick={toggleMenu}
+        aria-label="Open fic actions menu"
+        className="p-2 text-[#202d26] hover:text-[#886146] transition"
+      >
+        <MoreVertical size={24} />
+      </button>
 
-      {/* Menu Toggle Button (top-right) */}
-<button
-  onClick={toggleMenu}
-  aria-label="Open fic actions menu"
-  style={{
-    background: "transparent",
-    border: "none",
-    color: "#202d26",
-    cursor: "pointer",
-    padding: "0.3rem",
-  }}
->
-  <MoreVertical size={24} />
-</button>
-
-{menuOpen && (
+      {menuOpen && (
   <div
     style={{
       position: "absolute",
@@ -414,23 +390,14 @@ const FicPage = () => {
     <button
       onClick={() => navigate(`/log-fic/${fic.id}`, { state: { fic } })}
       style={{
-        backgroundColor: "#d5baa9",
-        color: "#202d26",
-        border: "1px solid #202d26",
-        padding: "0.5rem 1rem",
-        borderRadius: "6px",
+        backgroundColor: "#d3b7a4",
+        color: "#1a1a1a",
+        border: "1px solid #886146",
+        padding: "0.4rem 0.8rem",
+        borderRadius: "4px",
         cursor: "pointer",
         fontFamily: "serif",
-        fontWeight: "bold",
-        transition: "background-color 0.2s ease, color 0.2s ease",
-      }}
-      onMouseOver={(e) => {
-        e.currentTarget.style.backgroundColor = "#202d26";
-        e.currentTarget.style.color = "#d5baa9";
-      }}
-      onMouseOut={(e) => {
-        e.currentTarget.style.backgroundColor = "#d5baa9";
-        e.currentTarget.style.color = "#202d26";
+        fontSize: "0.95rem",
       }}
     >
       Log Fic
@@ -439,23 +406,14 @@ const FicPage = () => {
     <button
       onClick={() => navigate("/share-fic", { state: { fic } })}
       style={{
-        backgroundColor: "#d5baa9",
-        color: "#202d26",
-        border: "1px solid #202d26",
-        padding: "0.5rem 1rem",
-        borderRadius: "6px",
+        backgroundColor: "#d3b7a4",
+        color: "#1a1a1a",
+        border: "1px solid #886146",
+        padding: "0.4rem 0.8rem",
+        borderRadius: "4px",
         cursor: "pointer",
         fontFamily: "serif",
-        fontWeight: "bold",
-        transition: "background-color 0.2s ease, color 0.2s ease",
-      }}
-      onMouseOver={(e) => {
-        e.currentTarget.style.backgroundColor = "#202d26";
-        e.currentTarget.style.color = "#d5baa9";
-      }}
-      onMouseOut={(e) => {
-        e.currentTarget.style.backgroundColor = "#d5baa9";
-        e.currentTarget.style.color = "#202d26";
+        fontSize: "0.95rem",
       }}
     >
       Share Fic
@@ -470,28 +428,15 @@ const FicPage = () => {
           : ""
       }
       style={{
-        backgroundColor: canEdit ? "#d5baa9" : "#555",
-        color: canEdit ? "#202d26" : "#ccc",
-        border: "1px solid #202d26",
-        padding: "0.5rem 1rem",
-        borderRadius: "6px",
+        backgroundColor: canEdit ? "#d3b7a4" : "#666",
+        color: canEdit ? "#1a1a1a" : "#ccc",
+        border: "1px solid #886146",
+        padding: "0.4rem 0.8rem",
+        borderRadius: "4px",
         cursor: canEdit ? "pointer" : "not-allowed",
         fontFamily: "serif",
-        fontWeight: "bold",
+        fontSize: "0.95rem",
         opacity: canEdit ? 1 : 0.6,
-        transition: "background-color 0.2s ease, color 0.2s ease",
-      }}
-      onMouseOver={(e) => {
-        if (canEdit) {
-          e.currentTarget.style.backgroundColor = "#202d26";
-          e.currentTarget.style.color = "#d5baa9";
-        }
-      }}
-      onMouseOut={(e) => {
-        if (canEdit) {
-          e.currentTarget.style.backgroundColor = "#d5baa9";
-          e.currentTarget.style.color = "#202d26";
-        }
       }}
     >
       Edit Fic
@@ -499,117 +444,93 @@ const FicPage = () => {
   </div>
 )}
     </div>
-    
-      {/* 2) Fic Info Header (no longer sticky), background #202d26 */}
-      <div
-        style={{
-          backgroundColor: "#202d26",
-          padding: "3rem",
-          borderRadius: "8px",
-          marginBottom: "1rem",
-          marginTop: "2rem",
-          color: "#d5baa9",
-          position: "relative", // so menu can be absolute inside
-        }}
+
+    {/* ─── Fic Info Card ─────────────────────────────────────────────── */}
+  <div className="bg-[#202d26] rounded-2xl shadow-xl p-8 mb-8 text-[#d5baa9]">
+    {/* Title & Author */}
+    <h1 className="text-4xl font-serif mb-1">{fic.title}</h1>
+    <p className="text-lg mb-4">
+      by{" "}
+      <span className="italic text-[#886146]">
+        {fic.author || "Unknown Author"}
+      </span>
+    </p>
+
+    {/* Link Button */}
+    {fic.link && (
+      <a
+        href={fullFicUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-block mb-4 px-4 py-2 bg-[#886146] text-[#d3b7a4] rounded-full font-semibold hover:bg-[#d5baa9] hover:text-[#202d26] transition"
       >
-        <h1
-          style={{
-            fontSize: "2rem",
-            marginBottom: "0.25rem",
-            fontFamily: "serif",
-          }}
-        >
-          {fic.title}
-        </h1>
+        read fic
+      </a>
+    )}
 
-        <p
-          style={{
-            margin: 0,
-            marginBottom: "0.25rem",
-            fontSize: "1.1rem",
-          }}
-        >
-          by{" "}
-          <a
-            href={`/users/${fic.user_id}`}
-            style={{
-              color: "#d5baa9",
-              fontStyle: "italic",
-              textDecoration: "none",
-            }}
-          >
-            {fic.author || "Unknown Author"}
-          </a>
-        </p>
+    {/* Summary */}
+    <blockquote className="italic text-[#d5baa9] mb-6 border-l-4 border-[#886146] pl-4 whitespace-pre-wrap">
+      {fic.summary || "No summary provided."}
+    </blockquote>
 
-        {fic.link && (
-          <p style={{ marginTop: "0.5rem", marginBottom: "1rem" }}>
-            <a
-              href={fullFicUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: "#886146",
-                textDecoration: "underline",
-                fontSize: "1rem",
-              }}
-            >
-              Fic Link
-            </a>
-          </p>
-        )}
-
-
-
-        {/* 5) Fic summary */}
-        <p
-          style={{
-            margin: "1rem 0",
-            fontStyle: "italic",
-            fontSize: "0.9rem",
-            whiteSpace: "pre-wrap",
-            color: "#d5baa9",
-          }}
-        >
-          {fic.summary || "No summary provided."}
-        </p>
-
-        {/* 6) Collapsible sections, stacked vertically */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-            marginTop: "0.5rem",
-          }}
-        >
-          <CollapsibleSection
-            title="Warnings"
-            items={relatedData.warnings.map((w) => ({ name: w }))}
-            emptyMessage="No warnings"
-          />
-          <CollapsibleSection
-            title="Fandoms"
-            items={relatedData.fandoms.map((name) => ({ name }))}
-            emptyMessage="No fandoms"
-          />
-          <CollapsibleSection
-            title="Relationships"
-            items={relatedData.relationships.map((name) => ({ name }))}
-            emptyMessage="No relationships"
-          />
-          <CollapsibleSection
-            title="Characters"
-            items={relatedData.characters.map((name) => ({ name }))}
-            emptyMessage="No characters"
-          />
-          <CollapsibleSection
-            title="Tags"
-            items={relatedData.tags.map((name) => ({ name }))}
-            emptyMessage="No tags"
-          />
-        </div>
+    {/* Rating & Category */}
+    <div className="flex flex-wrap gap-6 mb-6 text-base">
+      <div>
+        <span className="font-semibold">Rating:</span>{" "}
+        {fic.rating || "Not Rated"}
       </div>
+      <div>
+        <span className="font-semibold">Category:</span>{" "}
+        {fic.category || "Uncategorized"}
+      </div>
+    </div>
+
+    {/* Collapsible Metadata */}
+    <div className="space-y-4 mb-6">
+      <CollapsibleSection
+        title="Warnings"
+        items={relatedData.warnings.map((w) => ({ name: w }))}
+        emptyMessage="No warnings"
+      />
+      <CollapsibleSection
+        title="Fandoms"
+        items={relatedData.fandoms.map((name) => ({ name }))}
+        emptyMessage="No fandoms"
+      />
+      <CollapsibleSection
+        title="Relationships"
+        items={relatedData.relationships.map((name) => ({ name }))}
+        emptyMessage="No relationships"
+      />
+      <CollapsibleSection
+        title="Characters"
+        items={relatedData.characters.map((name) => ({ name }))}
+        emptyMessage="No characters"
+      />
+      <CollapsibleSection
+        title="Tags"
+        items={relatedData.tags.map((name) => ({ name }))}
+        emptyMessage="No tags"
+      />
+    </div>
+
+    {/* Stats Row */}
+    <div className="flex flex-wrap gap-8 text-base">
+      <div>
+        <span className="font-semibold">Chapters:</span>{" "}
+        {fic.chapters ?? 0}
+      </div>
+      <div>
+        <span className="font-semibold">Kudos:</span>{" "}
+        {fic.kudos ?? 0}
+      </div>
+      <div>
+        <span className="font-semibold">Hits:</span>{" "}
+        {fic.hits ?? 0}
+      </div>
+    </div>
+  </div>
+
 
       {/* 7) TabBar (Your Posts / All Users' Notes) */}
       <TabBar
