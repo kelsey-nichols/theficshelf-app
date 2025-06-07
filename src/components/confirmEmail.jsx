@@ -50,7 +50,7 @@ export default function ConfirmEmail() {
             confirm your email
           </h1>
           <p className="text-[#596760] mb-6">
-          We sent you a confirmation email. Please check your inbox for an email from Supabase and confirm your email address and sign in to finish setting up your account.
+          We sent you a confirmation email. Please check your inbox for an email from support@theficshelf.app to confirm your email address and sign in to finish setting up your account.
           </p>
 
         <Link

@@ -7,7 +7,7 @@ import Bookshelf from "./routes/Bookshelf";
 import PrivateRoute from "./components/PrivateRoute";
 import ConfirmEmail from "./components/confirmEmail";
 import ForgotPassword from "./components/forgotPassword";
-import Tos from "./components/Tos";
+import Tos from "./components/tos";
 import ProtectedLayout from "./components/ProtectedLayout";
 import UserProfile from "./routes/User";
 import Discover from "./routes/Discover";

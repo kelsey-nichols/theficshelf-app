@@ -243,7 +243,7 @@ const PublicProfile = () => {
             style={{ textDecoration: "none" }}
           >
             <div
-              className="w-full p-4 rounded shadow-sm text-white font-semibold text-lg"
+              className="w-full p-4 mb-4 rounded shadow-sm text-[#d3b7a4] font-semibold text-lg"
               style={{
                 backgroundColor: shelf.color || "#333",
                 cursor: "pointer",
