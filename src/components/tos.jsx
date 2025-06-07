@@ -14,13 +14,6 @@ const Tos = () => {
 
   return (
     <div className="min-h-screen bg-[#202d26] px-6 py-10 font-serif text-[#202d26]">
-      <button
-        onClick={handleBack}
-        aria-label="Go back"
-        className="absolute top-6 left-6 text-xl font-bold text-[#d3b7a4]"
-      >
-        ← Return
-      </button>
       <div
         className="max-w-4xl mx-auto mt-16 p-6 bg-[#d3b7a4] border-3 border-[#202d26] shadow-lg overflow-y-auto"
         style={{ height: '70vh', lineHeight: 1.6, fontSize: '1rem', color: '#202d26' }}

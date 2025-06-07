@@ -60,9 +60,8 @@ export default function ContactUsPage() {
   };
 
 return (
-    <div className="bg-[#d3b7a4] py-10 px-4">
-      {/* Container only as wide as content, centered horizontally */}
-      <div className="max-w-5xl mx-auto">
+     <div className="min-h-screen bg-[#d3b7a4] flex justify-center items-center py-10 px-4">
+      <div className="max-w-5xl w-full">
         <div className="flex flex-col lg:flex-row lg:space-x-8 space-y-12 lg:space-y-0">
           {/* ─── 1) Bug / Issue Form ───────────────────────────────────────────────── */}
           <form

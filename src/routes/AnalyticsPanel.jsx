@@ -1,11 +1,10 @@
 // src/components/AnalyticsPanel.jsx
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import PropTypes from "prop-types";
 import {
   BookOpen,        // for “Words Read”
   LibraryBig,      // for “Fics Read”
-  CalendarDays,    // for “Reading Activity” (heatmap)
   Star,            // for “Top Fandom”
   Heart,           // for “Top Relationship”
   User,            // for “Top Character”
@@ -229,38 +228,39 @@ const AnalyticsPanel = ({ userId, monthOffset = 0 }) => {
 
   // ─── Render a simple 7-column grid of small squares for each day ─────────────────
   const renderHeatmap = () => (
-    <div className="mx-auto max-w-[250px] sm:max-w-[300px] md:max-w-[350px]">
-      <div className="grid grid-cols-7 gap-[2px]">
-        {heatmapData.map((didRead, idx) => (
-          <div
-            key={idx}
-            className={`aspect-square w-full rounded-sm ${
-              didRead ? 'bg-green-600' : 'bg-gray-300'
-            }`}
-            title={`Day ${idx + 1}: ${didRead ? 'Read' : 'No reading'}`}
-          />
-        ))}
-      </div>
+  <div className="mx-auto max-w-[250px] sm:max-w-[300px] md:max-w-[350px]">
+    <div className="grid grid-cols-7 gap-[3px]">
+      {heatmapData.map((didRead, idx) => (
+        <div
+          key={idx}
+          className={`aspect-square w-full rounded-md border border-[#4a5a4a] transition-colors ${
+            didRead
+              ? 'bg-[#56734d] shadow-inner' // muted warm green with subtle inner shadow
+              : 'bg-[#c8c0b6]' // warm beige/gray for no reading
+          }`}
+          title={`Day ${idx + 1}: ${didRead ? 'Read' : 'No reading'}`}
+        />
+      ))}
     </div>
-  );
+  </div>
+);
+
 
   return (
-    <div className="bg-[#f5f1eb] p-6 rounded-3xl shadow-lg w-full">
+    <div className="bg-[#202d26] p-6 rounded-3xl shadow-lg w-full">
       {/* Title */}
-      <div className="flex items-center mb-6">
-        <CalendarDays className="w-6 h-6 text-[#202d26]" />
-        <h2 className="ml-2 font-serif text-2xl text-[#202d26]">
-          {monthLabel} Analytics
+      <div className="flex justify-center mb-6">
+        <h2 className="font-serif text-4xl text-[#d4b9a8]">
+          {monthLabel.split(' ')[0].toLowerCase()} 
         </h2>
       </div>
 
       {/* Top Row: Words Read & Fics Read */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
         {/* Words Read Card */}
-        <div className="relative bg-[#d3b8a7] rounded-2xl shadow-md hover:shadow-lg transition-shadow group">
-          <div className="absolute left-0 top-0 h-full w-1 bg-[#202d26] rounded-l-2xl"></div>
-          <div className="p-5 flex flex-col items-center">
-            <BookOpen className="w-8 h-8 text-[#202d26] mb-2" />
+        <div className="relative bg-[#d3b8a7] rounded-2xl shadow-md hover:shadow-lg transition-shadow group border-2 border-[#956342]">
+          <div className="p-5 flex flex-col items-center border border-[#956342] rounded-xl w-full">
+            <BookOpen className="w-8 h-8 text-[#996442] mb-2" />
             <div className="text-[#494f4b] text-xs uppercase tracking-wide mb-1">
               Words Read
             </div>
@@ -271,9 +271,8 @@ const AnalyticsPanel = ({ userId, monthOffset = 0 }) => {
         </div>
 
         {/* Fics Read Card */}
-        <div className="relative bg-[#d3b8a7] rounded-2xl shadow-md hover:shadow-lg transition-shadow group">
-          <div className="absolute left-0 top-0 h-full w-1 bg-[#9a5643] rounded-l-2xl"></div>
-          <div className="p-5 flex flex-col items-center">
+        <div className="relative bg-[#d3b8a7] rounded-2xl shadow-md hover:shadow-lg transition-shadow group border-2 border-[#9b5744]">
+          <div className="p-5 flex flex-col items-center border border-[#9b5744] rounded-xl w-full">
             <LibraryBig className="w-8 h-8 text-[#9a5643] mb-2" />
             <div className="text-[#494f4b] text-xs uppercase tracking-wide mb-1">
               Fics Read
@@ -288,12 +287,8 @@ const AnalyticsPanel = ({ userId, monthOffset = 0 }) => {
       {/* Reading Activity (Heatmap) */}
       <div className="mb-10">
         <div className="flex items-center mb-3">
-          <CalendarDays className="w-5 h-5 text-[#2d261e]" />
-          <h3 className="ml-1 font-serif text-lg text-[#2d261e]">
-            Reading Activity
-          </h3>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
+        <div className="bg-[#d3b8a7] rounded-xl p-4 shadow-md shadow-[#202d26]/20">
           {renderHeatmap()}
         </div>
       </div>
@@ -301,10 +296,9 @@ const AnalyticsPanel = ({ userId, monthOffset = 0 }) => {
       {/* Bottom Row: Top Fandom / Relationship / Character */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Top Fandom */}
-        <div className="relative bg-[#fdf8f4] border border-[#986341] rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
-          <div className="absolute left-0 top-0 h-1 w-full bg-[#986341] rounded-t-2xl"></div>
+        <div className="relative bg-[#d3b7a4] border-4 border-[#856857] rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
           <div className="p-5 flex flex-col items-center">
-            <Star className="w-6 h-6 text-[#986341] mb-2" />
+            <Star className="w-6 h-6 text-[#856857] mb-2" />
             <div className="text-[#494f4b] text-xs tracking-wide mb-1">
               Top Fandom
             </div>
@@ -315,10 +309,9 @@ const AnalyticsPanel = ({ userId, monthOffset = 0 }) => {
         </div>
 
         {/* Top Relationship */}
-        <div className="relative bg-[#fdf8f4] border border-[#9a5643] rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
-          <div className="absolute left-0 top-0 h-1 w-full bg-[#9a5643] rounded-t-2xl"></div>
+        <div className="relative bg-[#d3b7a4] border-4 border-[#9c5845] rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
           <div className="p-5 flex flex-col items-center">
-            <Heart className="w-6 h-6 text-[#9a5643] mb-2" />
+            <Heart className="w-6 h-6 text-[#9c5845] mb-2" />
             <div className="text-[#494f4b] text-xs tracking-wide mb-1">
               Top Relationship
             </div>
@@ -329,10 +322,9 @@ const AnalyticsPanel = ({ userId, monthOffset = 0 }) => {
         </div>
 
         {/* Top Character */}
-        <div className="relative bg-[#fdf8f4] border border-[#202d26] rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
-          <div className="absolute left-0 top-0 h-1 w-full bg-[#202d26] rounded-t-2xl"></div>
+        <div className="relative bg-[#d3b7a4] border-4 border-[#996442] rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
           <div className="p-5 flex flex-col items-center">
-            <User className="w-6 h-6 text-[#202d26] mb-2" />
+            <User className="w-6 h-6 text-[#996442] mb-2" />
             <div className="text-[#494f4b] text-xs tracking-wide mb-1">
               Top Character
             </div>
