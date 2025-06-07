@@ -9,6 +9,8 @@ import {
   Bell,
   Mail,
   Scroll,
+  Settings,
+  Heart,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserAuth } from "../context/AuthContext";
@@ -26,6 +28,8 @@ const mainTabs = [
 
 const secondaryTabs = [
   
+  { id: "settings", icon: Settings, label:"settings", path: "/settings" },
+  { id: "support", icon: Heart, label: "support us", path: "/support-us" },
   { id: "contact", icon: Mail, label:"contact us", path: "/contact"},
   { id: "terms", icon: Scroll, label: "terms", path: "/terms"},
 ];

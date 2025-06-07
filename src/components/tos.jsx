@@ -1,111 +1,118 @@
-import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 const Tos = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Use state passed in navigation or fallback to dashboard/home
-  const from = location.state?.from || "/";
-
   const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate(from);
-    }
-  };
+ // If there's at least one previous entry in history
+  if (window.history.length > 1) {
+     navigate(-1);
+   } else {
+     navigate("/");
+  }
+ };
 
   return (
-    <div
-      className="min-h-screen relative px-6 py-10 font-serif"
-      style={{ backgroundColor: "#202d26", color: "#202d26"}}
-    >
-      {/* Back button top-left */}
+    <div className="min-h-screen bg-[#202d26] px-6 py-10 font-serif text-[#202d26]">
       <button
         onClick={handleBack}
         aria-label="Go back"
-        className="absolute top-6 left-6 text-xl font-bold cursor-pointer"
-        style={{ color: "#d3b7a4", background: "transparent", border: "none" }}
+        className="absolute top-6 left-6 text-xl font-bold text-[#d3b7a4]"
       >
-        ← return
+        ← Return
       </button>
-
-      {/* Terms content box */}
       <div
-        className="max-w-4xl mx-auto mt-16 p-6  shadow-lg"
-        style={{
-          backgroundColor: "#d3b7a4",
-          border: "3px solid #202d26",
-          height: "70vh",
-          overflowY: "auto",
-          lineHeight: 1.6,
-          fontSize: "1.1rem",
-        }}
+        className="max-w-4xl mx-auto mt-16 p-6 bg-[#d3b7a4] border-3 border-[#202d26] shadow-lg overflow-y-auto"
+        style={{ height: '70vh', lineHeight: 1.6, fontSize: '1rem', color: '#202d26' }}
       >
-        <h1 className="text-3xl font-bold mb-4">Terms of Service for The Fic Shelf</h1>
-        <p className="mb-6 italic">Effective Date: 05/21/2025</p>
+        <h1 className="text-3xl font-bold mb-4">Terms of Service & Data Policy</h1>
+        <p className="mb-6 italic">Effective Date: May 21, 2025</p>
 
         <section className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">1 - Introduction</h2>
+          <h2 className="text-xl font-semibold mb-2">1. Introduction</h2>
           <p>
-            Hello! I’m Kelsey Nichols, the creator of The Fic Shelf, a longtime reader and writer of fanfiction for over eighteen years. I built this app to give fans like me a simple, respectful way to log, track, and engage with fanfiction content hosted on Archive of Our Own (AO3). The Fic Shelf is not a replacement for AO3, nor does it scrape, host, or reproduce any fanworks. It is a companion tool designed to support your experience and preserve the integrity of AO3’s incredible space for transformative works.
+            Welcome to <strong>The Fic Shelf</strong>! I’m Kelsey Nichols, a reader and writer of fanfiction for over 15 years. This is an open source platform designed as a companion to Archive of Our Own (AO3) for logging, tracking,
+            and organizing your favorite fanworks. By using this service, you agree to these Terms of Service and Data Policy.
           </p>
         </section>
 
         <section className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">2 - Relationship with AO3</h2>
+          <h2 className="text-xl font-semibold mb-2">2. Scope & Relationship with AO3</h2>
           <p>
-            The Fic Shelf is fully compliant with AO3’s Terms of Service. We do not store or rehost any AO3 content, and we do not interfere with AO3's infrastructure or operations in any way. This app interacts only with manually entered content and links and does not claim ownership of any fanworks, content, or trademarks associated with AO3, the Organization for Transformative Works (OTW), or any fandoms.
+            <strong>The Fic Shelf</strong> is independent and not affiliated with the Organization for Transformative Works (OTW) or AO3. We
+            do not store, scrape, or host any fanfiction content. All entries on this site are user-provided links and metadata pointing back to AO3.
           </p>
         </section>
 
         <section className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">3 - User Accounts and Data</h2>
-          <p>We believe your data belongs to you. Here’s how we protect it:</p>
+          <h2 className="text-xl font-semibold mb-2">3. User Accounts & Data Rights</h2>
+          <p>
+            We respect your privacy and data ownership:
+          </p>
           <ul className="list-disc list-inside mb-4">
-            <li><strong>Data Privacy:</strong> We do not sell, share, or monetize your personal information or usage data.</li>
-            <li><strong>Data Portability:</strong> You can export your data at any time through the app’s settings.</li>
-            <li><strong>Account Deletion:</strong> You have the right to delete your account and all associated data permanently at any time.</li>
-            <li><strong>Data Use:</strong> Your data is used solely to power features like personal logging, reading history, and tagging. It is never shared with third parties.</li>
+            <li><strong>Ownership:</strong> All data you enter (shelves, fics, notes, reading logs) remain yours at all times.</li>
+            <li><strong>Data Portability:</strong> Use the Export feature to download your data as an Excel file with separate sheets per shelf.</li>
+            <li><strong>Account Deletion:</strong> You may delete your account at any time. Upon deletion, all personal data will be permanently removed from our systems.
+            </li>
           </ul>
         </section>
 
         <section className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">4 - Your Responsibilities</h2>
-          <p>By using The Fic Shelf, you agree to:</p>
-          <ul className="list-disc list-inside">
-            <li>Use the app only for personal, non-commercial purposes.</li>
-            <li>Not abuse, reverse-engineer, or attempt to scrape AO3 content using this app.</li>
-            <li>Respect other fans, creators, and AO3’s mission.</li>
+          <h2 className="text-xl font-semibold mb-2">4. Data Policy & Compliance</h2>
+          <p>
+            We adhere to best practices for user data:
+          </p>
+          <ul className="list-disc list-inside mb-4">
+            <li><strong>No Selling:</strong> We will never sell, rent, or lease your personal information to third parties.</li>
+            <li><strong>Minimal Collection:</strong> We collect only what is necessary to provide our services (e.g., email for password recovery).
+            </li>
+            <li><strong>Security:</strong> We use industry-standard encryption (HTTPS, Supabase security rules) to protect your data in transit and at rest.</li>
+            <li><strong>Transparency:</strong> Any future data usage changes will be communicated and consent requested.
+            </li>
           </ul>
         </section>
 
         <section className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">5 - Intellectual Property</h2>
+          <h2 className="text-xl font-semibold mb-2">5. Donations & Voluntary Support</h2>
           <p>
-            The Fic Shelf does not claim ownership over any fanworks or metadata. Any titles, authors, summaries, or links displayed in the app are presented strictly for personal, non-commercial use in accordance with AO3's guidelines and copyright best practices. All rights remain with the original creators and AO3.
+            The Fic Shelf is free to use—no features are hidden behind a paywall. We gratefully accept voluntary donations via Stripe to cover hosting, database, and development costs. Donations are entirely optional and do not grant additional privileges.
           </p>
         </section>
 
         <section className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">6 - Disclaimer</h2>
+          <h2 className="text-xl font-semibold mb-2">6. User Responsibilities</h2>
+          <ul className="list-disc list-inside mb-4">
+            <li>Use the app for personal, non-commercial purposes only.</li>
+            <li>Do not attempt to scrape or circumvent AO3’s platform.</li>
+            <li>Respect the rights of fan creators and AO3’s community guidelines.</li>
+          </ul>
+        </section>
+
+        <section className="mb-6">
+          <h2 className="text-xl font-semibold mb-2">7. Intellectual Property & Licensing</h2>
           <p>
-            The Fic Shelf is an independent project and is not affiliated with AO3 or the OTW. This app is provided “as is” without warranties of any kind. While we strive for a smooth, respectful experience, we make no guarantees regarding accuracy, availability, or uninterrupted service.
+            All fanfiction works and metadata belong to their respective authors and AO3. This site displays user-entered text and links under fair use for personal reference only.
           </p>
         </section>
 
         <section className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">7 - Changes to These Terms</h2>
+          <h2 className="text-xl font-semibold mb-2">8. Warranty Disclaimer</h2>
           <p>
-            We may update these Terms of Service from time to time. When we do, we’ll notify you in the app and update the "Effective Date" at the top of this page.
+            This service is provided “as-is” without warranties. We strive for reliable performance but do not guarantee uninterrupted access or error-free operation.
+          </p>
+        </section>
+
+        <section className="mb-6">
+          <h2 className="text-xl font-semibold mb-2">9. Changes to Terms</h2>
+          <p>
+            We may update these Terms or Data Policy. We will post changes here with a revised “Effective Date” and send notifications within the app.
           </p>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-2">8 - Contact</h2>
+          <h2 className="text-xl font-semibold mb-2">10. Contact & Support</h2>
           <p>
-            Got a question, concern, or fanfic rec? Reach out to us at [your email address or contact link].
+            Questions or concerns? Reach out at <a href="mailto:support@theficshelf.app" className="underline">support@theficshelf.app</a>.
           </p>
         </section>
       </div>

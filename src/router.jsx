@@ -9,7 +9,6 @@ import ConfirmEmail from "./components/confirmEmail";
 import ForgotPassword from "./components/forgotPassword";
 import Tos from "./components/Tos";
 import ProtectedLayout from "./components/ProtectedLayout";
-// Removed UserLayout import
 import UserProfile from "./routes/User";
 import Discover from "./routes/Discover";
 import LogFic from "./routes/LogFic";
@@ -28,6 +27,9 @@ import PublicProfile from "./routes/PublicProfile";
 import NotificationsPage from "./routes/Notifications";
 import ContactUsPage from "./components/ContactUs";
 import AdminPanel from "./routes/AdminPanel";
+import SettingsPage from "./routes/Settings";
+import SupportUsPage from "./routes/SupportUs";
+import NotFoundPage from "./routes/NotFoundPage";
 
 export const router = createBrowserRouter([
   {
@@ -42,6 +44,9 @@ export const router = createBrowserRouter([
       { path: "forgot-password", element: <ForgotPassword /> },
       { path: "terms", element: <Tos /> },
       { path: "contact", element: <ContactUsPage /> },
+
+      // 404 catch-all
+      { path: "*", element: <NotFoundPage /> },
 
       // Logged in users who may not have completed profile yet
       {
@@ -79,6 +84,8 @@ export const router = createBrowserRouter([
           { path: "user/bookmarked-shelves", element: <BookmarkedShelves /> },
           { path: "notifications", element: <NotificationsPage /> },
           { path: "admin", element: <AdminPanel /> },
+          { path: "settings", element: <SettingsPage />},
+          { path: "support-us", element: <SupportUsPage />},
           
         ],
       },

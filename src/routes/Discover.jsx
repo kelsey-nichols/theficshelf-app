@@ -1,5 +1,5 @@
 // src/routes/DiscoverPage.jsx
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import TabBar from "./TabBar"; // or wherever your TabBar lives
@@ -7,6 +7,8 @@ import TabBar from "./TabBar"; // or wherever your TabBar lives
 export default function DiscoverPage() {
   const navigate = useNavigate();
   const containerRef = useRef(null);
+  
+  const [sortBy, setSortBy] = useState("title");
 
   // ─── GLOBAL STATE ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState("fics");
@@ -18,6 +20,7 @@ export default function DiscoverPage() {
   const [fandomSuggestions, setFandomSuggestions] = useState([]);
   const [relationshipSuggestions, setRelationshipSuggestions] = useState([]);
   const [tagSuggestions, setTagSuggestions] = useState([]);
+  
 
   const PAGE_SIZE = 20;
   const [page, setPage] = useState(1);
@@ -439,24 +442,24 @@ const runSearch = async () => {
       setLoading(false);
       return;
     }
-
     const start = (page - 1) * PAGE_SIZE;
     const end = page * PAGE_SIZE - 1;
     const pageIds = finalIds.slice(start, end + 1);
-
     if (pageIds.length === 0) {
       setHasMore(false);
       setLoading(false);
       return;
     }
 
+    // Determine ascending/descending
+    const isAsc = sortBy === "title";
+
+    // Fetch the paged fics in the chosen order
     const { data: ficRows, error: ficErr } = await supabase
       .from("fics")
-      .select(
-        "id, title, author, summary, created_at, updated_at, hits, kudos"
-      )
+      .select("id, title, author, summary, created_at, updated_at, hits, kudos")
       .in("id", pageIds)
-      .order("created_at", { ascending: false });
+      .order(sortBy, { ascending: isAsc });
 
     if (ficErr) {
       console.error(ficErr);
@@ -465,7 +468,8 @@ const runSearch = async () => {
       return;
     }
 
-    setResults((prev) => (page === 1 ? ficRows : [...prev, ...ficRows]));
+    // Update state
+    setResults(prev => (page === 1 ? ficRows : [...prev, ...ficRows]));
     setHasMore(ficRows.length === PAGE_SIZE);
     setLoading(false);
   }
@@ -652,6 +656,7 @@ const runSearch = async () => {
     usernameText,
     selectedUsers,
     page,
+    sortBy,
   ]);
 
   useEffect(() => {
@@ -693,6 +698,18 @@ return (
     {/* ─── FICS TAB ─────────────────────────────────────────────────────────── */}
     {activeTab === "fics" && (
       <>
+      <div className="mb-4 flex justify-end">
+        <label className="mr-2 text-sm text-[#202d26]">Sort by:</label>
+        <select
+          value={sortBy}
+          onChange={e => { setSortBy(e.target.value); setPage(1); }}
+          className="border-2 border-[#886146] rounded px-2 py-1"
+        >
+          <option value="title">Alphabetical</option>
+          <option value="hits">Hits</option>
+          <option value="kudos">Kudos</option>
+        </select>
+      </div>
         {/* Title input */}
         <div className="mb-4">
           <input
