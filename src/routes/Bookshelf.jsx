@@ -228,11 +228,11 @@ const NewShelfBox = ({ onClick }) => {
           onClick();
         }
       }}
-      className="p-4 rounded-xl shadow-md w-full flex items-center justify-center cursor-pointer border border-dashed border-gray-400 hover:bg-gray-100 transition max-w-md mx-auto mb-3"
+      className="p-4 rounded-xl shadow-md w-full flex items-center justify-center cursor-pointer border border-dashed border-[#202d26] hover:bg-[#816454] transition max-w-md mx-auto mb-3"
       style={{ height: "72px" }}
       aria-label="Create new shelf"
     >
-      <Plus size={32} className="text-gray-500" />
+      <Plus size={32} className="text-[#202d26]" />
     </div>
   );
 };
@@ -353,27 +353,27 @@ const Bookshelf = () => {
       <div className="flex justify-between items-center mb-6 max-w-md mx-auto">
         <h1 className="text-4xl  font-bold text-[#202d26]">bookshelf</h1>
 
-        {/* REPLACE “Edit” text-button with an Ellipsis menu */}
+        {/* Ellipsis menu */}
         <div className="relative">
           <button
             onClick={() => setMenuOpen((o) => !o)}
-            className="p-1 rounded hover:bg-gray-200"
+            className="p-1 rounded hover:bg-[#d3b7a4]"
             aria-label="Open bookshelf menu"
           >
             <Ellipsis size={24} className="text-[#202d26]" />
           </button>
 
           {menuOpen && (
-            <ul className="absolute right-0 mt-2 w-32 bg-white rounded shadow-lg z-10 border border-gray-200">
+            <ul className="absolute right-0 mt-2 w-32 bg-[#202d26] rounded shadow-lg z-10 border border-[#202d26]">
               <li>
                 <button
                   onClick={() => {
                     setEditing((prev) => !prev);
                     setMenuOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                  className="w-full text-center text-[#d3b7a4] px-4 py-2 hover:bg-[#9b5744]"
                 >
-                  {editing ? "Done" : "Edit"}
+                  {editing ? "DONE" : "EDIT"}
                 </button>
               </li>
             </ul>

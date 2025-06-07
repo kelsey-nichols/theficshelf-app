@@ -14,7 +14,6 @@ const PublicProfile = () => {
 
   const [profile, setProfile] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [wordsRead, setWordsRead] = useState(0);
@@ -38,13 +37,19 @@ const PublicProfile = () => {
 
         // Fetch follow status if logged in
         if (sessionUserId) {
-          const { data: followData } = await supabase
+          const { data: followData, error: followError } = await supabase
             .from("follows")
-            .select("id")
-            .eq("follower_id", sessionUserId)
+            .select("*")
+            .eq("followers_id", sessionUserId)
             .eq("following_id", profileData.id)
-            .single();
-          setIsFollowing(!!followData);
+            .maybeSingle();
+
+          if (followError) {
+            console.error("Follow status error:", followError);
+            setIsFollowing(false); // fallback
+          } else {
+            setIsFollowing(!!followData);
+          }
         }
 
         // Fetch followers/following counts exactly like UserProfile
@@ -55,7 +60,7 @@ const PublicProfile = () => {
           supabase
             .from("follows")
             .select("*", { count: "exact", head: true })
-            .eq("follower_id", profileData.id),
+            .eq("followers_id", profileData.id),
           supabase
             .from("follows")
             .select("*", { count: "exact", head: true })
@@ -110,13 +115,13 @@ const PublicProfile = () => {
         await supabase
           .from("follows")
           .delete()
-          .eq("follower_id", sessionUserId)
+          .eq("followers_id", sessionUserId)
           .eq("following_id", profile.id);
         setIsFollowing(false);
         setFollowersCount((cnt) => cnt - 1);
       } else {
         await supabase.from("follows").insert({
-          follower_id: sessionUserId,
+          followers_id: sessionUserId,
           following_id: profile.id,
         });
         setIsFollowing(true);
@@ -125,13 +130,6 @@ const PublicProfile = () => {
     } catch (err) {
       console.error("Follow/unfollow error:", err);
     }
-    setDropdownOpen(false);
-  };
-
-  // Block user placeholder
-  const handleBlockUser = () => {
-    alert("Block feature not yet implemented.");
-    setDropdownOpen(false);
   };
 
   // ---------------------------------------------------
@@ -314,27 +312,7 @@ const PublicProfile = () => {
               >
                 {isFollowing ? "Unfollow" : "Follow"}
               </button>
-
-              {/* Dropdown toggle */}
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="px-2 flex items-center justify-center hover:bg-[#202d26] hover:text-[#d3b7a4] transition-colors"
-              >
-                <ChevronDown size={18} />
-              </button>
             </div>
-
-            {/* Dropdown content */}
-            {dropdownOpen && (
-              <div className="absolute right-0 mt-1 w-24 bg-white border border-[#202d26] shadow z-10 text-left">
-                <button
-                  onClick={handleBlockUser}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-[#f4ece6]"
-                >
-                  Block
-                </button>
-              </div>
-            )}
           </div>
         )}
       </div>

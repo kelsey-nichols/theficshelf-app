@@ -13,6 +13,9 @@ const PostCard = ({ post, onDelete }) => {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(null);
+  const [reportError, setReportError] = useState(null);
 
   const navigate = useNavigate();
 
@@ -148,6 +151,34 @@ const PostCard = ({ post, onDelete }) => {
       setComments([...comments, newComment]);
       setCommentText("");
       setReplyTo(null);
+    }
+  };
+
+  const handleReportPost = async () => {
+    if (!currentUserId) {
+      setReportError("You must be logged in to report a post.");
+      return;
+    }
+
+    setReporting(true);
+    setReportError(null);
+    setReportSuccess(null);
+
+    try {
+      const { error } = await supabase.from("reports").insert({
+        post_id: post.id,
+        reporter_id: currentUserId,
+        reason: null, // You can extend this to accept a reason input
+      });
+
+      if (error) throw error;
+
+      setReportSuccess("Post reported successfully.");
+    } catch (error) {
+      setReportError("Failed to report post. Please try again.");
+      console.error("Report error:", error);
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -316,111 +347,120 @@ const PostCard = ({ post, onDelete }) => {
   };
 
   return (
-    <div className="border-b border-[#202D26] pb-4 mb-6">
-      <div className="flex justify-between items-start relative">
-        {renderPostHeader()}
+  <div className="border-b border-[#202D26] pb-4 mb-6">
+    <div className="flex justify-between items-start relative">
+      {renderPostHeader()}
 
-        <div className="relative">
-          {/* Ellipsis menu button */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Open post menu"
-            className="p-1 rounded hover:bg-gray-200 focus:outline-none"
-          >
-            <Ellipsis size={20} />
-          </button>
+      <div className="relative">
+        {/* Ellipsis menu button */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Open post menu"
+          className="p-1 rounded focus:outline-none"
+        >
+          <Ellipsis size={20} />
+        </button>
 
-          {/* Menu dropdown */}
-          {menuOpen && (
-            <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow-md z-10">
-              {currentUserId === post.user_id ? (
-                <button
-                  onClick={handleDeletePost}
-                  className="flex items-center gap-2 px-3 py-2 hover:bg-red-100 text-red-600 w-full text-right"
-                >
-                  Delete <Trash2 size={16} />
-                </button>
-              ) : (
+        {menuOpen && (
+          <div className="absolute right-0 mt-2 w-40 bg-[#202d26] border border-gray-700 rounded shadow-lg z-10 p-1">
+            {currentUserId === post.user_id ? (
+              <button
+                onClick={handleDeletePost}
+                className="flex items-center gap-2 px-4 py-2  text-[#9a5643] w-full text-left rounded"
+              >
+                Delete <Trash2 size={16} color="#9a5643" />
+              </button>
+            ) : (
+              <>
                 <button
                   onClick={handleReportPost}
-                  className="flex items-center gap-2 px-3 py-2 hover:bg-yellow-100 text-yellow-700 w-full text-right"
+                  disabled={reporting}
+                  className="flex items-center gap-2 px-4 py-2 text-[#966443] w-full text-left rounded disabled:opacity-50"
                 >
-                  Report <Flag size={16} />
+                  Report <Flag size={16} color="#966443" />
                 </button>
-              )}
+
+                {reportError && (
+                  <p className="text-[#d3b7a4] text-sm px-4 py-1 mt-1 rounded">
+                    {reportError}
+                  </p>
+                )}
+                {reportSuccess && (
+                  <p className="text-[#d3b7a4] text-sm px-4 py-1 mt-1 rounded">
+                    {reportSuccess}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+
+    {formatPostText()}
+    {renderAttachedItem()}
+
+    <div className="flex items-center gap-6 mt-3 text-sm text-gray-500">
+      {/* Like button with icon and count */}
+      <button
+        onClick={handleLikeToggle}
+        className="flex items-center gap-1 focus:outline-none"
+        aria-label={liked ? "Unlike post" : "Like post"}
+      >
+        <Heart
+          size={18}
+          className={liked ? "fill-[#9b5744] text-[#9b5744]" : "text-[#494f4b]"}
+        />
+        <span>{likeCount}</span>
+      </button>
+
+      {/* Comments toggle button with icon and count */}
+      <button
+        type="button"
+        onClick={() => setCommentsOpen(!commentsOpen)}
+        className="flex items-center gap-1 text-[#976242] hover:underline focus:outline-none"
+        aria-expanded={commentsOpen}
+        aria-label={commentsOpen ? "Hide comments" : "View comments"}
+      >
+        {commentsOpen ? <MessageCircleX size={18} /> : <MessageCircle size={18} />}
+        <span>{comments.length}</span>
+      </button>
+    </div>
+
+    {commentsOpen && (
+      <div className="mt-4">
+        <div>{renderComments()}</div>
+
+        <form onSubmit={handleCommentSubmit} className="mt-3">
+          {replyTo && (
+            <div className="text-xs text-gray-500 mb-1">
+              Replying to comment
+              <button
+                type="button"
+                onClick={() => setReplyTo(null)}
+                className="text-[#946241] ml-2"
+              >
+                Cancel
+              </button>
             </div>
           )}
-        </div>
-      </div>
-
-      {formatPostText()}
-      {renderAttachedItem()}
-
-      <div className="flex items-center gap-6 mt-3 text-sm text-gray-500">
-        {/* Like button with icon and count */}
-        <button
-          onClick={handleLikeToggle}
-          className="flex items-center gap-1 focus:outline-none"
-          aria-label={liked ? "Unlike post" : "Like post"}
-        >
-          <Heart
-            size={18}
-            className={liked ? "fill-[#9b5744] text-[#9b5744]" : "text-[#494f4b]"}
+          <input
+            type="text"
+            placeholder="Add a comment..."
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            className="w-full border border-[#202d26] rounded bg-[#e5e0dc] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
           />
-          <span>{likeCount}</span>
-        </button>
-
-        {/* Comments toggle button with icon and count */}
-        <button
-          type="button"
-          onClick={() => setCommentsOpen(!commentsOpen)}
-          className="flex items-center gap-1 text-[#976242] hover:underline focus:outline-none"
-          aria-expanded={commentsOpen}
-          aria-label={commentsOpen ? "Hide comments" : "View comments"}
-        >
-          {commentsOpen ? (
-            <MessageCircleX size={18} />
-          ) : (
-            <MessageCircle size={18} />
-          )}
-          <span>{comments.length}</span>
-        </button>
+          <button
+            type="submit"
+            className="mt-2 bg-[#202c28] text-[#d4b9a8] px-4 py-2 rounded text-sm ml-auto"
+          >
+            COMMENT
+          </button>
+        </form>
       </div>
-
-      {commentsOpen && (
-        <div className="mt-4">
-          <div>{renderComments()}</div>
-
-          <form onSubmit={handleCommentSubmit} className="mt-3">
-            {replyTo && (
-              <div className="text-xs text-gray-500 mb-1">
-                Replying to comment
-                <button
-                  type="button"
-                  onClick={() => setReplyTo(null)}
-                  className="text-[#946241] ml-2"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-            <input
-              type="text"
-              placeholder="Add a comment..."
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              className="w-full border border-[#202d26] rounded bg-[#e5e0dc] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202d26]"
-            />
-            <button
-              type="submit"
-              className="mt-2 bg-[#202c28] text-[#d4b9a8] px-4 py-2 rounded text-sm ml-auto"
-            >
-              COMMENT
-            </button>
-          </form>
-        </div>
-      )}
-    </div>
-  );
+    )}
+  </div>
+);
 };
 export default PostCard;
