@@ -13,8 +13,8 @@ export default async function handler(req, res) {
 
   // Initialize an *admin* Supabase client
   const supabaseAdmin = createClient(
-    process.env.VITE_SUPABASE_URL,
-    process.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
