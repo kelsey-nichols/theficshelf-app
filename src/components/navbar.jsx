@@ -35,6 +35,9 @@ const secondaryTabs = [
 ];
 
 export default function Navbar() {
+
+  
+
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = UserAuth();
