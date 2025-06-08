@@ -123,17 +123,14 @@ const handleDeleteAccount = async (e) => {
     });
 
     if (error) {
-      console.error("Invoke error:", error);
       setDelMsg(error.message);
     } else if (data?.error) {
-      console.error("Function returned error:", data.error);
       setDelMsg(data.error);
     } else {
       setDelMsg("Account deleted.");
       navigate("/");
     }
   } catch (err) {
-    console.error("❌ Unexpected error invoking delete-user:", err);
     setDelMsg("Failed to send request to the Edge Function");
   }
 };
