@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import MobileNavbar from "./MobileNavbar";
-import Navbar from "./Navbar";
+import Navbar from "./Navbar.jsx";
 import {
   LibraryBig,
   Search,
