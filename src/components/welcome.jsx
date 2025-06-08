@@ -93,8 +93,11 @@ export default function Welcome() {
         <div className="max-w-4xl mx-auto space-y-6">
           <h2 className="text-3xl font-bold">What is The Fic Shelf?</h2>
           <p className="text-lg leading-relaxed">
-            The Fic Shelf is your personal companion for keeping track of fanfiction reads. Inspired by Archive of Our Own (AO3), this app allows you to organize
-            stories into shelves, log your reading progress with notes and dates, and discover new works in an intuitive, lightweight interface.
+            The Fic Shelf is your personal companion for keeping track of fanfiction reads. This app allows you to organize
+            fics into shelves, log your reading progress with notes and dates, and discover new works in an intuitive, lightweight interface.
+          </p>
+          <p className="text-lg leading-relaxed mt-4">
+            Beyond simple bookmarking, The Fic Shelf gives you powerful tools: view analytics on your reading habits, save and share shelves with friends, and revisit your year in fanfiction with a personalized end-of-year recap.
           </p>
           <p className="text-lg leading-relaxed">
             All your data is yours — export it anytime or delete your account with a single click. And it’s completely free, supported by voluntary donations to cover
