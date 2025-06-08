@@ -83,21 +83,21 @@ const CompleteProfile = () => {
         user_id: user.id,
         title: "Archive",
         is_private: true,
-        color: "#8c8c8c", // optional color for Archive
+        color: "#442d1d", // optional color for Archive
         sort_order: 1,
       },
       {
         user_id: user.id,
         title: "Currently Reading",
         is_private: false,
-        color: "#6ba4ff", // optional color
+        color: "#995643", // optional color
         sort_order: 2,
       },
       {
         user_id: user.id,
         title: "TBR",
         is_private: false,
-        color: "#ffb347", // optional color
+        color: "#6d8b8d", // optional color
         sort_order: 3,
       },
     ]);
