@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Heart, MessageCircle, MessageCircleX, Ellipsis, Trash2, Flag, LibraryBig, Book } from "lucide-react";
 import { supabase } from "../supabaseClient";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const PostCard = ({ post, onDelete }) => {
   const [liked, setLiked] = useState(false);
@@ -223,81 +223,81 @@ const PostCard = ({ post, onDelete }) => {
   const renderAttachedItem = () => {
     if (post.fic && !post.text.includes("[fic]")) {
       return (
-        <Link
-          to={`/bookshelf/${post.shelf.id}`}
-          className="inline-flex items-center gap-2 bg-[#6d8b8d] text-[#D4B9A8] text-sm px-3 py-1 rounded-lg mt-2"
+        <button
+          onClick={() => navigate(`/fic/${post.fic.id}`)}
+          className="inline-flex items-center gap-2 bg-[#6d8b8d] text-[#D4B9A8] text-sm px-3 py-1 rounded-lg mt-2 focus:outline-none"
         >
           <Book className="w-4 h-4" />
           {post.fic.title} by {post.fic.author}
-        </Link>
-      );
+        </button>
+      )
     }
 
     if (post.shelf && !post.text.includes("[shelf]")) {
       return (
-        <Link
-          to={`/bookshelf/${post.shelf.id}`}
-          className="inline-flex items-center gap-2 bg-[#34252F] text-[#D4B9A8] text-sm px-3 py-1 rounded-lg mt-2"
+        <button
+          onClick={() => navigate(`/bookshelf/${post.shelf.id}`)}
+          className="inline-flex items-center gap-2 bg-[#34252F] text-[#D4B9A8] text-sm px-3 py-1 rounded-lg mt-2 focus:outline-none"
         >
           <LibraryBig className="w-4 h-4" />
           {post.shelf.title} by @{post.user?.username}
-        </Link>
-      );
+        </button>
+      )
     }
 
-    return null;
-  };
+    return null
+  }
 
   const formatPostText = () => {
-    const { text, fic, shelf, user } = post;
+    const { text, fic, shelf, user } = post
 
     if (fic && text.includes("[fic]")) {
-      const parts = text.split("[fic]");
+      const parts = text.split("[fic]")
       return (
         <p className="mt-2 whitespace-pre-wrap">
-          {parts.map((part, index) => (
-            <React.Fragment key={index}>
-            {part.trimEnd()}
-            {index < parts.length - 1 && (
-              <Link
-                to={`/fic/${fic.id}`}
-                className="inline-flex items-center gap-2 bg-[#6d8b8d] text-[#D4B9A8] text-sm px-2 py-1 rounded-lg mx-1"
-              >
-                <Book className="w-4 h-4" />
-                {fic.title} by {fic.author}
-              </Link>
-            )}
-          </React.Fragment>
+          {parts.map((part, i) => (
+            <React.Fragment key={i}>
+              {part.trimEnd()}
+              {i < parts.length - 1 && (
+                <button
+                  onClick={() => navigate(`/fic/${fic.id}`)}
+                  className="inline-flex items-center gap-2 bg-[#6d8b8d] text-[#D4B9A8] text-sm px-2 py-1 rounded-lg mx-1 focus:outline-none"
+                >
+                  <Book className="w-4 h-4" />
+                  {fic.title} by {fic.author}
+                </button>
+              )}
+            </React.Fragment>
           ))}
         </p>
-      );
+      )
     }
 
     if (shelf && text.includes("[shelf]")) {
-      const parts = text.split("[shelf]");
+      const parts = text.split("[shelf]")
       return (
         <p className="mt-2 whitespace-pre-wrap">
-          {parts.map((part, index) => (
-            <React.Fragment key={index}>
-            {part}
-            {index < parts.length - 1 && (
-              <Link
-                to={`/bookshelf/${shelf.id}`}
-                className="inline-flex items-center gap-2 bg-[#34252F] text-[#D4B9A8] text-sm px-2 py-1 rounded-lg mx-1"
-              >
-                <LibraryBig className="w-4 h-4" />
-                {shelf.title} by @{user?.username}
-              </Link>
-            )}
-          </React.Fragment>
+          {parts.map((part, i) => (
+            <React.Fragment key={i}>
+              {part}
+              {i < parts.length - 1 && (
+                <button
+                  onClick={() => navigate(`/bookshelf/${shelf.id}`)}
+                  className="inline-flex items-center gap-2 bg-[#34252F] text-[#D4B9A8] text-sm px-2 py-1 rounded-lg mx-1 focus:outline-none"
+                >
+                  <LibraryBig className="w-4 h-4" />
+                  {shelf.title} by @{user?.username}
+                </button>
+              )}
+            </React.Fragment>
           ))}
         </p>
-      );
+      )
     }
 
-    return <p className="mt-2 whitespace-pre-wrap">{text}</p>;
-  };
-
+    return <p className="mt-2 whitespace-pre-wrap">{text}</p>
+  }
+  
   const handleDeletePost = async () => {
     try {
       const { error } = await supabase
