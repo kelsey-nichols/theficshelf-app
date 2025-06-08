@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import { useState, navigate} from "react";
 import { supabase } from "../supabaseClient";
 import { UserAuth } from "../context/AuthContext";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { Link } from "react-router-dom";
 
 export default function SettingsPage() {
   const { user } = UserAuth();
@@ -11,10 +12,6 @@ export default function SettingsPage() {
   // Change Email
   const [newEmail, setNewEmail] = useState("");
   const [emailMsg, setEmailMsg] = useState("");
-
-  // Change Password
-  const [passwords, setPasswords] = useState({ old: "", new1: "", new2: "" });
-  const [pwMsg, setPwMsg] = useState("");
 
   // Export
   const [exporting, setExporting] = useState(false);
@@ -29,17 +26,6 @@ export default function SettingsPage() {
     const { error } = await supabase.auth.updateUser({ email: newEmail });
     if (error) setEmailMsg(error.message);
     else setEmailMsg("Email updated successfully. Check your inbox.");
-  };
-
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    if (passwords.new1 !== passwords.new2) {
-      setPwMsg("New passwords do not match");
-      return;
-    }
-    const { error } = await supabase.auth.updateUser({ password: passwords.new1 });
-    if (error) setPwMsg(error.message);
-    else setPwMsg("Password updated successfully.");
   };
 
   const exportData = async () => {
@@ -124,117 +110,128 @@ export default function SettingsPage() {
       setDelMsg("Type DELETE to confirm");
       return;
     }
-    const { error } = await supabase.auth.api.deleteUser(userId);
-    if (error) setDelMsg(error.message);
-    else setDelMsg("Account deleted.");
+
+    try {
+      const resp = await fetch("/api/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      const { error, success } = await resp.json();
+      if (error) {
+        setDelMsg(error);
+      } else {
+        setDelMsg("Account deleted.");
+        navigate("/");
+      }
+    } catch (err) {
+      console.error(err);
+      setDelMsg("Failed to delete account.");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#d3b7a4] p-6 font-serif">
-      <h1 className="text-3xl font-bold text-[#202d26] mb-6">settings</h1>
+  <div className="min-h-screen bg-[#d3b7a4] p-6 font-serif">
+    <h1 className="text-3xl font-bold text-[#202d26] mb-8">Settings</h1>
 
-      <div className="space-y-4">
-        <details className="bg-[#202d26] text-[#d3b7a4] rounded-lg p-4">
-          <summary className="cursor-pointer font-semibold">Theme Settings</summary>
-          <p className="mt-2">Default theme enabled. More themes coming soon!</p>
-        </details>
+    <div className="space-y-6">
+      {/* Theme Settings */}
+      <details className="bg-[#202d26] text-[#d3b7a4] rounded-lg p-6">
+        <summary className="cursor-pointer font-semibold text-lg">Theme Settings</summary>
+        <div className="mt-4">
+          <p className="leading-relaxed">
+            Default theme enabled. More themes and dark mode coming soon!
+          </p>
+        </div>
+      </details>
 
-        <details className="bg-[#202d26] text-[#d3b7a4] rounded-lg p-4">
-          <summary className="cursor-pointer font-semibold">Account Info</summary>
-          <div className="mt-4 space-y-6">
-            <form onSubmit={handleChangeEmail} className="space-y-2">
-              <label>New Email:</label>
-              <input
-                type="email"
-                required
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                className="w-full p-2 rounded bg-[#dfdad6] text-[#202d26]"
-              />
-              <button type="submit" className="px-4 py-2 rounded bg-[#d3b7a4] text-[#202d26]">
-                Update Email
-              </button>
-              {emailMsg && <p className="text-sm mt-1">{emailMsg}</p>}
-            </form>
-            <form onSubmit={handleChangePassword} className="space-y-2">
-              <label>Old Password:</label>
-              <input
-                type="password"
-                required
-                value={passwords.old}
-                onChange={(e) => setPasswords({ ...passwords, old: e.target.value })}
-                className="w-full p-2 rounded bg-[#dfdad6] text-[#202d26]"
-              />
-              <label>New Password:</label>
-              <input
-                type="password"
-                required
-                value={passwords.new1}
-                onChange={(e) => setPasswords({ ...passwords, new1: e.target.value })}
-                className="w-full p-2 rounded bg-[#dfdad6] text-[#202d26]"
-              />
-              <label>Confirm New Password:</label>
-              <input
-                type="password"
-                required
-                value={passwords.new2}
-                onChange={(e) => setPasswords({ ...passwords, new2: e.target.value })}
-                className="w-full p-2 rounded bg-[#dfdad6] text-[#202d26]"
-              />
-              <button type="submit" className="px-4 py-2 rounded bg-[#d3b7a4] text-[#202d26]">
-                Change Password
-              </button>
-              {pwMsg && <p className="text-sm mt-1">{pwMsg}</p>}
-            </form>
-          </div>
-        </details>
-
-        <details className="bg-[#202d26] text-[#d3b7a4] rounded-lg p-4" id="export">
-          <summary className="cursor-pointer font-semibold">Data Export</summary>
-          <div className="mt-2">
-            <p>
-              You can generate an Excel file of your logged fics at any point using the button below. This excel sheet is very simple but has pages
-              for each shelf, showing basic information for each fic including link, dates read, etc. If you are planning on deleting your account, 
-              please export your data first so you don't lose all your fics!
-            </p>
+      {/* Account Info */}
+      <details className="bg-[#202d26] text-[#d3b7a4] rounded-lg p-6">
+        <summary className="cursor-pointer font-semibold text-lg">Account Info</summary>
+        <div className="mt-6 space-y-6">
+          {/* Change Email */}
+          <form onSubmit={handleChangeEmail} className="space-y-4">
+            <label className="block font-medium">New Email</label>
+            <input
+              type="email"
+              required
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              className="w-full p-3 rounded bg-[#dfdad6] text-[#202d26] focus:outline-none focus:ring-2 focus:ring-[#886146]"
+            />
             <button
-              onClick={exportData}
-              disabled={exporting}
-              className="px-4 py-2 rounded bg-[#d3b7a4] text-[#202d26] hover:bg-[#b8a58b] disabled:opacity-50"
+              type="submit"
+              className="inline-block px-6 py-2 bg-[#d3b7a4] text-[#202d26] rounded-full font-semibold border border-[#886146] hover:bg-[#886146] hover:text-white transition"
             >
-              {exporting ? "Exporting..." : "Export to Excel"}
+              Update Email
             </button>
-          </div>
-        </details>
+            {emailMsg && <p className="mt-2 text-sm">{emailMsg}</p>}
+          </form>
 
-        <details className="bg-[#202d26] text-[#d3b7a4] rounded-lg p-4">
-          <summary className="cursor-pointer font-semibold text-[#9b5744]">Delete Account</summary>
-          <div className="mt-2 space-y-3">
-            <p>
-              <strong>Want to delete your account?</strong> If you want to keep the fics you've logged,
-              make sure you export your data above. Once you delete your account, <strong>there is no recovering this information.</strong>
-            </p>
-            <p>To confirm, type <strong>DELETE</strong> below.</p>
-            <form onSubmit={handleDeleteAccount} className="space-y-2">
+          {/* Reset Password */}
+          <div className="border-t border-[#886146] pt-6">
+            <p className="mb-2">To change your password, send yourself a magic-link:</p>
+            <Link
+              to="/forgot-password"
+              className="inline-block px-5 py-2 bg-[#886146] text-[#d3b7a4] rounded-full font-semibold hover:bg-[#a07a5f] transition"
+            >
+              Send Reset Link
+            </Link>
+          </div>
+        </div>
+      </details>
+
+      {/* Data Export */}
+      <details className="bg-[#202d26] text-[#d3b7a4] rounded-lg p-6">
+        <summary className="cursor-pointer font-semibold text-lg">Data Export</summary>
+        <div className="mt-4 space-y-4">
+          <p className="leading-relaxed">
+            Export your reading logs and shelf data as an Excel workbook. Useful before deleting your account!
+          </p>
+          <button
+            onClick={exportData}
+            disabled={exporting}
+            className="px-6 py-2 bg-[#d3b7a4] text-[#202d26] rounded-full font-semibold hover:bg-[#b8a58b] transition disabled:opacity-50"
+          >
+            {exporting ? "Exporting…" : "Export to Excel"}
+          </button>
+        </div>
+      </details>
+
+      {/* Delete Account */}
+      <details className="bg-[#202d26] text-[#d3b7a4] rounded-lg p-6">
+        <summary className="cursor-pointer font-semibold text-lg text-[#9b5744]">
+          Delete Account
+        </summary>
+        <div className="mt-6 space-y-4">
+          <p className="leading-relaxed">
+            <strong>Warning:</strong> Deleting your account cannot be undone. Export your data first if you wish to keep it.
+          </p>
+          <form onSubmit={handleDeleteAccount} className="space-y-4">
+            <div>
+              <label className="block mb-1">Type <strong>DELETE</strong> to confirm:</label>
               <input
                 type="text"
                 value={deleteConfirm}
                 onChange={(e) => setDeleteConfirm(e.target.value)}
-                placeholder="Type DELETE"
-                className="w-full p-2 rounded bg-[#dfdad6] text-[#202d26]"
+                placeholder="DELETE"
+                className="w-full p-3 rounded bg-[#dfdad6] text-[#202d26] focus:outline-none focus:ring-2 focus:ring-red-600"
               />
-              <button
-                type="submit"
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-50"
-                disabled={deleteConfirm !== "DELETE"}
-              >
-                Delete My Account
-              </button>
-            </form>
-            {delMsg && <p className="text-sm mt-1">{delMsg}</p>}
-          </div>
-        </details>
-      </div>
+            </div>
+            <button
+              type="submit"
+              disabled={deleteConfirm !== "DELETE"}
+              className="inline-block px-6 py-2 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition disabled:opacity-50"
+            >
+              Delete My Account
+            </button>
+          </form>
+          {delMsg && <p className="mt-2 text-sm">{delMsg}</p>}
+        </div>
+      </details>
     </div>
-  );
+  </div>
+);
+
 }

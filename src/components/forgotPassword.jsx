@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
@@ -54,7 +54,7 @@ export default function ForgotPassword() {
         </h1>
 
         <p className="text-[#d3b7a4] mb-6">
-          No worries! Just enter your email and follow the temporary access link sent to you. Be sure to update your password in settings once you're back in!
+          No worries! Just enter your email and follow the temporary access link sent to you to update your password.
         </p>
 
         <div className="flex flex-col mb-4">

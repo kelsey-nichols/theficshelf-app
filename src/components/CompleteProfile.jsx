@@ -189,7 +189,7 @@ const CompleteProfile = () => {
 
         <button
           type="submit"
-          className="block mx-auto bg-[#202d26] text-[#d3b7a4] py-3 mt-6 text-xl mb-4 rounded-full font-semibold border border-[#886146] hover:bg-[#886146] hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="block mx-auto bg-[#202d26] text-[#d3b7a4] py-3 px-6 mt-6 text-xl mb-4 rounded-full font-semibold border border-[#886146] hover:bg-[#886146] hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={loading}
         >
           {loading ? "saving..." : "SAVE"}

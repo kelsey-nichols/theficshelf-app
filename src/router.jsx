@@ -30,6 +30,7 @@ import AdminPanel from "./routes/AdminPanel";
 import SettingsPage from "./routes/Settings";
 import SupportUsPage from "./routes/SupportUs";
 import NotFoundPage from "./routes/NotFoundPage";
+import ResetPassword from "./components/ResetPassword";
 
 export const router = createBrowserRouter([
   {
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
       { path: "forgot-password", element: <ForgotPassword /> },
       { path: "terms", element: <Tos /> },
       { path: "contact", element: <ContactUsPage /> },
+      { path: "reset-password", element: <ResetPassword />},
 
       // 404 catch-all
       { path: "*", element: <NotFoundPage /> },
