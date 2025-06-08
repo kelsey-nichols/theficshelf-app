@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { UserAuth } from "../context/AuthContext";
-import { ChevronDown } from "lucide-react";
 import BackButton from "./BackButton";
 import TabBar from "./TabBar";
 import PostCard from "./PostCard";
@@ -10,7 +9,6 @@ import PostCard from "./PostCard";
 const PublicProfile = () => {
   const { session } = UserAuth();
   const { username } = useParams();
-  const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -134,6 +132,7 @@ const PublicProfile = () => {
 
   // ---------------------------------------------------
   // ProfilePosts inner component
+  // eslint-disable-next-line react/prop-types
   const ProfilePosts = ({ userId }) => {
     const [posts, setPosts] = useState([]);
     const [loadingPosts, setLoadingPosts] = useState(true);
@@ -204,6 +203,7 @@ const PublicProfile = () => {
 
   // ---------------------------------------------------
   // PublicShelves inner component
+  // eslint-disable-next-line react/prop-types
   const PublicShelves = ({ userId }) => {
     const [shelves, setShelves] = useState([]);
     const [loadingShelves, setLoadingShelves] = useState(true);

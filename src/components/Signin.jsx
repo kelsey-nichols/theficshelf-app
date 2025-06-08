@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserAuth } from "../context/AuthContext";
 
@@ -6,14 +6,13 @@ const Signin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
 
   const { signInUser } = UserAuth();
   const navigate = useNavigate();
 
   const handleSignIn = async (e) => {
     e.preventDefault();
-    const { session, error } = await signInUser(email, password);
+    const { error } = await signInUser(email, password);
 
     if (error) {
       setError(error.message || "Failed to sign in.");
@@ -89,7 +88,7 @@ const Signin = () => {
 </p>
 
         <p className="text-center italic text-sm" style={{ color: "#d3b7a4" }}>
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link
             to="/signup"
             className="underline hover:text-purple-900"

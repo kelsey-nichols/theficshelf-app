@@ -1,16 +1,5 @@
-import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 
 const Tos = () => {
-  const navigate = useNavigate();
-  const handleBack = () => {
- // If there's at least one previous entry in history
-  if (window.history.length > 1) {
-     navigate(-1);
-   } else {
-     navigate("/");
-  }
- };
 
   return (
     <div className="min-h-screen bg-[#202d26] px-6 py-10 font-serif text-[#202d26]">

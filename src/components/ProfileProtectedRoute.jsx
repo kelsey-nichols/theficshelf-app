@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { UserAuth } from "../context/AuthContext";
 import { supabase } from "../supabaseClient";
 
+// eslint-disable-next-line react/prop-types
 const ProfileProtectedRoute = ({ children }) => {
   const { user, session } = UserAuth();
   const location = useLocation();

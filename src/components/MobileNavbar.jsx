@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, LibraryBig, Search, BookmarkPlus, Bookmark, Newspaper, User, LogOut, Bell, Info, Mail, Settings, Scroll, Heart } from "lucide-react";
+import { Menu, X, LibraryBig, Search, BookmarkPlus, Bookmark, Newspaper, User, LogOut, Bell, Mail, Settings, Scroll, Heart } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserAuth } from "../context/AuthContext";
 
@@ -44,7 +44,6 @@ export default function MobileNavbar() {
 
   const activeColor = "#886146";
   const inactiveColor = "#d3b7a4";
-  const bgColor = "#202d26";
 
   return (
     <>
