@@ -106,7 +106,6 @@ export default function Welcome() {
         </div>
       </motion.section>
 
-      {/* Demo Section */}
       <motion.section
         className="bg-[#202d26] text-[#d3b7a4] px-6 py-16"
         initial={{ opacity: 0, y: 40 }}
@@ -114,14 +113,39 @@ export default function Welcome() {
         transition={{ duration: 0.8 }}
         viewport={{ once: true }}
       >
-        <div className="max-w-6xl mx-auto space-y-10 text-center">
-          <h2 className="text-3xl font-bold mb-4">See It in Action</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Replace with real screenshots later */}
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-[#d3b7a4] p-4 rounded-xl shadow-lg aspect-[3/2] flex items-center justify-center">
-                <span className="text-[#202d26] text-xl font-semibold">Screenshot {i}</span>
+        <div className="max-w-6xl mx-auto space-y-12 text-center">
+          <h2 className="text-3xl font-bold mb-4">preview of features:</h2>
+
+          {/* Mobile Screenshots Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 place-items-center">
+            {[
+              { src: "/shelf_mobile.png", alt: "Mobile bookshelf view" },
+              { src: "/ficlog_mobile.png", alt: "Mobile fic logging interface" },
+              { src: "/feed_mobile.png", alt: "Mobile feed view" },
+            ].map(({ src, alt }, i) => (
+              <div key={i} className="w-full max-w-[300px]">
+                <img
+                  src={src}
+                  alt={alt}
+                  className="w-full h-auto rounded-lg shadow-lg"
+                />
               </div>
+            ))}
+          </div>
+
+          {/* Web Screenshots Stacked */}
+          <div className="flex flex-col items-center gap-10">
+            {[
+              { src: "/shelfpage_web.png", alt: "Shelf page with sorted fics" },
+              { src: "/ficpage_web.png", alt: "Fic page with details and actions" },
+              { src: "/analytics_web.png", alt: "Web user analytics dashboard" },
+            ].map(({ src, alt }, i) => (
+              <img
+                key={i}
+                src={src}
+                alt={alt}
+                className="w-full max-w-[900px] h-auto rounded-lg shadow-lg"
+              />
             ))}
           </div>
         </div>
