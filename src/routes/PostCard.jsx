@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Heart, MessageCircle, MessageCircleX, Ellipsis, Trash2, Flag, LibraryBig, Book } from "lucide-react";
 import { supabase } from "../supabaseClient";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const PostCard = ({ post, onDelete }) => {
   const [liked, setLiked] = useState(false);
@@ -223,25 +223,25 @@ const PostCard = ({ post, onDelete }) => {
   const renderAttachedItem = () => {
     if (post.fic && !post.text.includes("[fic]")) {
       return (
-        <a
-          href={`/fic/${post.fic.id}`}
+        <Link
+          to={`/bookshelf/${post.shelf.id}`}
           className="inline-flex items-center gap-2 bg-[#6d8b8d] text-[#D4B9A8] text-sm px-3 py-1 rounded-lg mt-2"
         >
           <Book className="w-4 h-4" />
           {post.fic.title} by {post.fic.author}
-        </a>
+        </Link>
       );
     }
 
     if (post.shelf && !post.text.includes("[shelf]")) {
       return (
-        <a
-          href={`/bookshelf/${post.shelf.id}`}
+        <Link
+          to={`/bookshelf/${post.shelf.id}`}
           className="inline-flex items-center gap-2 bg-[#34252F] text-[#D4B9A8] text-sm px-3 py-1 rounded-lg mt-2"
         >
           <LibraryBig className="w-4 h-4" />
           {post.shelf.title} by @{post.user?.username}
-        </a>
+        </Link>
       );
     }
 
@@ -259,13 +259,13 @@ const PostCard = ({ post, onDelete }) => {
             <React.Fragment key={index}>
             {part.trimEnd()}
             {index < parts.length - 1 && (
-              <a
-                href={`/fic/${fic.id}`}
+              <Link
+                to={`/fic/${fic.id}`}
                 className="inline-flex items-center gap-2 bg-[#6d8b8d] text-[#D4B9A8] text-sm px-2 py-1 rounded-lg mx-1"
               >
                 <Book className="w-4 h-4" />
                 {fic.title} by {fic.author}
-              </a>
+              </Link>
             )}
           </React.Fragment>
           ))}
@@ -281,13 +281,13 @@ const PostCard = ({ post, onDelete }) => {
             <React.Fragment key={index}>
             {part}
             {index < parts.length - 1 && (
-              <a
-                href={`/bookshelf/${shelf.id}`}
+              <Link
+                to={`/bookshelf/${shelf.id}`}
                 className="inline-flex items-center gap-2 bg-[#34252F] text-[#D4B9A8] text-sm px-2 py-1 rounded-lg mx-1"
               >
                 <LibraryBig className="w-4 h-4" />
                 {shelf.title} by @{user?.username}
-              </a>
+              </Link>
             )}
           </React.Fragment>
           ))}
