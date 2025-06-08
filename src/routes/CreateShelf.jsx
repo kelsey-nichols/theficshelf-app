@@ -6,17 +6,24 @@ import { supabase } from "../supabaseClient";
 
 // Predefined color options
 const COLORS = {
-  moss: "#a7b89e",
-  olive: "#4a5c46",
-  sky: "#acc5c7",
-  storm: "#6d8b8d",
-  winkle: "#95a9c4",
+  "deep grey": "#2e2c2b",
+  grey: "#464c48",
   cocoa: "#442d1d",
+  pumpkin: "#956241",
   caramel: "#84592c",
   "spiced wine": "#733015",
-  pumpkin: "#956241",
+  "deep red": "#6e0e0a",
   "dusty rose": "#995643",
-  grey: "#464c48",
+  "dark green": "#202d26",
+  olive: "#4a5c46",
+  green: "#4c9f70",
+  "cambridge blue": "#6bab90",
+  storm: "#6d8b8d",
+  lapis: "#336699",
+  "persian blue": "#3d52d5",
+  violet: "#726da8",
+  plum: "#412234",
+  
 };
 
 // Map Supabase rows to { value, label } for react-select
