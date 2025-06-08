@@ -1,4 +1,5 @@
-import { useState, navigate} from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { UserAuth } from "../context/AuthContext";
 import * as XLSX from "xlsx";
@@ -8,6 +9,7 @@ import { Link } from "react-router-dom";
 export default function SettingsPage() {
   const { user } = UserAuth();
   const userId = user?.id;
+  const navigate = useNavigate();
 
   // Change Email
   const [newEmail, setNewEmail] = useState("");
@@ -103,33 +105,38 @@ export default function SettingsPage() {
     saveAs(blob, "my_fic_shelf_data.xlsx");
     setExporting(false);
   };
+  
+const handleDeleteAccount = async (e) => {
+  e.preventDefault();
 
-  const handleDeleteAccount = async (e) => {
-    e.preventDefault();
-    if (deleteConfirm !== "DELETE") {
-      setDelMsg("Type DELETE to confirm");
-      return;
+  if (deleteConfirm !== "DELETE") {
+    setDelMsg("Type DELETE to confirm");
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke("delete-user", {
+      body: { userId }, // do NOT stringify
+      headers: {
+        "Content-Type": "application/json", // ✅ Ensure this is set
+      },
+    });
+
+    if (error) {
+      console.error("Invoke error:", error);
+      setDelMsg(error.message);
+    } else if (data?.error) {
+      console.error("Function returned error:", data.error);
+      setDelMsg(data.error);
+    } else {
+      setDelMsg("Account deleted.");
+      navigate("/");
     }
-
-    try {
-      const resp = await fetch("/api/delete-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-
-      const { error, success } = await resp.json();
-      if (error) {
-        setDelMsg(error);
-      } else {
-        setDelMsg("Account deleted.");
-        navigate("/");
-      }
-    } catch (err) {
-      console.error(err);
-      setDelMsg("Failed to delete account.");
-    }
-  };
+  } catch (err) {
+    console.error("❌ Unexpected error invoking delete-user:", err);
+    setDelMsg("Failed to send request to the Edge Function");
+  }
+};
 
   return (
   <div className="min-h-screen bg-[#d3b7a4] p-6 font-serif">
