@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronRight, ChevronLeft, MoreVertical } from "lucide-react";
+import { ChevronRight, MoreVertical } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { UserAuth } from '../context/AuthContext';
 import { differenceInDays, formatDistanceToNow } from "date-fns";
 import TabBar from "./TabBar";
 import PostCard from "./PostCard";
-import BackButton from "./BackButton";
 
 const CollapsibleSection = ({ title, items, emptyMessage }) => {
   const [open, setOpen] = useState(false);
@@ -204,6 +204,8 @@ const AllUsersNotes = ({ ficId }) => {
     if (!loading && hasMore) setPage((p) => p + 1);
   };
 
+  
+
   return (
     <div className="max-w-xl mx-auto px-4 py-6 font-serif text-[#202d26] text-left">
       {notes.length === 0 && !loading && <p>No notes found.</p>}
@@ -246,37 +248,26 @@ const AllUsersNotes = ({ ficId }) => {
   );
 };
 
-
-
 const FicPage = () => {
+  const { user } = UserAuth();
   const { ficId } = useParams();
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const toggleMenu = () => setMenuOpen((prev) => !prev);
-
-  const [currentUser, setCurrentUser] = useState(null);
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (!error) setCurrentUser(data.user);
-    });
-  }, []);
+  const toggleMenu = () => setMenuOpen(prev => !prev);
 
   const [fic, setFic] = useState(null);
-  const [relatedData, setRelatedData] = useState({
-    warnings: [],
-    fandoms: [],
-    relationships: [],
-    characters: [],
-    tags: [],
-  });
+  const [relatedData, setRelatedData] = useState({ warnings: [], fandoms: [], relationships: [], characters: [], tags: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userCount, setUserCount] = useState(0);
-  const [activeTab, setActiveTab] = useState("posts");
+  const [activeTab, setActiveTab] = useState('posts');
+
+  // Track whether this user has a reading log
+  const [readingLog, setReadingLog] = useState(null);
 
   useEffect(() => {
-    if (!ficId) return;
+    if (!ficId || !user?.id) return;
 
     const fetchData = async () => {
       setLoading(true);
@@ -284,11 +275,10 @@ const FicPage = () => {
 
       // Fetch main fic info
       const { data: ficData, error: ficError } = await supabase
-        .from("fics")
-        .select("*")
-        .eq("id", ficId)
+        .from('fics')
+        .select('*')
+        .eq('id', ficId)
         .single();
-
       if (ficError) {
         setError(ficError.message);
         setLoading(false);
@@ -300,44 +290,52 @@ const FicPage = () => {
         const { data, error } = await supabase
           .from(joinTable)
           .select(`${lookupTable} ( name )`)
-          .eq("fic_id", ficId);
-
+          .eq('fic_id', ficId);
         if (error) {
           console.error(`Error fetching ${lookupTable}:`, error);
           return [];
         }
-        return data.map((item) => item[lookupTable].name);
+        return data.map(item => item[lookupTable].name);
       }
 
       const warnings = ficData.archive_warning || [];
-      const fandoms = await fetchRelated("fic_fandoms", "fandoms");
-      const relationships = await fetchRelated("fic_relationships", "relationships");
-      const characters = await fetchRelated("fic_characters", "characters");
-      const tags = await fetchRelated("fic_tags", "tags");
+      const fandoms = await fetchRelated('fic_fandoms', 'fandoms');
+      const relationships = await fetchRelated('fic_relationships', 'relationships');
+      const characters = await fetchRelated('fic_characters', 'characters');
+      const tags = await fetchRelated('fic_tags', 'tags');
 
       setFic(ficData);
       setRelatedData({ warnings, fandoms, relationships, characters, tags });
 
       // Fetch distinct user count
       const { countError, count } = await supabase
-        .from("reading_logs")
-        .select("user_id", { count: "exact", distinct: "user_id", head: true })
-        .eq("fic_id", ficId);
-
+        .from('reading_logs')
+        .select('user_id', { count: 'exact', distinct: 'user_id', head: true })
+        .eq('fic_id', ficId);
       if (countError) {
-        console.error("Error fetching user count:", countError);
+        console.error('Error fetching user count:', countError);
         setUserCount(0);
       } else {
         setUserCount(count || 0);
       }
 
+      // Fetch this user's reading log (only to show Sort option)
+      const { data: logData, error: logError } = await supabase
+        .from('reading_logs')
+        .select('id')
+        .eq('fic_id', ficId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (logError) console.error('Error fetching reading log:', logError);
+      setReadingLog(logData);
+
       setLoading(false);
     };
 
     fetchData();
-  }, [ficId]);
+  }, [ficId, user]);
 
-  const canEditFic = (updatedAt) => {
+  const canEditFic = updatedAt => {
     if (!updatedAt) return false;
     return differenceInDays(new Date(), new Date(updatedAt)) >= 7;
   };
@@ -347,15 +345,15 @@ const FicPage = () => {
   if (error) return <p>Error: {error}</p>;
   if (!fic) return <p>Fic not found.</p>;
 
-  // Format the “Read Full Fic” link:
-  // (Assumes your fics table has a `link` field, e.g. “example.com/story123” or “www.example.com/story123” or “https://example.com/story123”)
-  const makeFullUrl = (raw) => {
-    if (!raw) return "#";
-    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
-    if (raw.startsWith("www.")) return `https://${raw}`;
+  // Format full URL
+  const makeFullUrl = raw => {
+    if (!raw) return '#';
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+    if (raw.startsWith('www.')) return `https://${raw}`;
     return `https://www.${raw}`;
   };
   const fullFicUrl = makeFullUrl(fic.link);
+
 
   return (
     <div className="min-h-screen bg-[#d3b7a4] font-serif p-6 relative">
@@ -418,6 +416,25 @@ const FicPage = () => {
     >
       Share Fic
     </button>
+
+    {/** only show Sort Fic if they’ve logged it already **/}
+    {readingLog && (
+      <button
+        onClick={() => navigate(`/sort-fic/${fic.id}`, { state: { fic } })}
+        style={{
+          backgroundColor: "#d3b7a4",
+          color: "#1a1a1a",
+          border: "1px solid #886146",
+          padding: "0.4rem 0.8rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontFamily: "serif",
+          fontSize: "0.95rem",
+        }}
+      >
+        Sort Fic
+      </button>
+    )}
 
     <button
       onClick={() => navigate(`/edit-fic/${fic.id}`, { state: { fic } })}
@@ -551,7 +568,7 @@ const FicPage = () => {
         }}
       >
         {activeTab === "posts" && (
-          <UserPosts ficId={ficId} userId={currentUser?.id} />
+          <UserPosts ficId={ficId} userId={user?.id} />
         )}
         {activeTab === "notes" && <AllUsersNotes ficId={ficId} />}
       </div>

@@ -31,6 +31,7 @@ import SettingsPage from "./routes/Settings";
 import SupportUsPage from "./routes/SupportUs";
 import NotFoundPage from "./routes/NotFoundPage";
 import ResetPassword from "./components/ResetPassword";
+import SortFic from "./routes/SortFic";
 
 export const router = createBrowserRouter([
   {
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
           { path: "share-fic", element: <ShareFicPage /> },
           { path: "share-shelf", element: <ShareShelfPage /> },
           { path: "edit-fic/:ficId", element: <EditFic /> },
+          { path: "sort-fic/:ficId", element: <SortFic /> },
           { path: "user/:username", element: <PublicProfile /> },
           { path: "user", element: <UserProfile /> },
           { path: "user/bookmarked-shelves", element: <BookmarkedShelves /> },
