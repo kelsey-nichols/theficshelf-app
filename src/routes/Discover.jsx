@@ -481,14 +481,19 @@ const runSearch = async () => {
     if (shelfTitleText.trim()) {
       const { data, error } = await supabase
         .from("shelves")
-        .select("id")
+        .select("id, title")
         .ilike("title", `%${shelfTitleText.trim()}%`)
         .eq("is_private", false);
       if (error) {
         console.error(error);
         titleIds = [];
       } else {
-        titleIds = data.map((r) => r.id);
+        const filtered = data.filter(
+          (r) =>
+            r.title.trim().toLowerCase() !== "currently reading" &&
+            r.title.trim().toLowerCase() !== "tbr"
+        );
+        titleIds = filtered.map((r) => r.id);
       }
     }
 
@@ -592,7 +597,13 @@ const runSearch = async () => {
       return;
     }
 
-    const userIds = [...new Set(shelfRows.map((shelf) => shelf.user_id))];
+    const visibleShelfRows = shelfRows.filter(
+      (shelf) =>
+        shelf.title.trim().toLowerCase() !== "currently reading" &&
+        shelf.title.trim().toLowerCase() !== "tbr"
+    );
+
+    const userIds = [...new Set(visibleShelfRows.map((shelf) => shelf.user_id))];
 
     const { data: profileRows, error: profileErr } = await supabase
       .from("profiles")
@@ -603,13 +614,15 @@ const runSearch = async () => {
       profileRows.map((p) => [p.id, p.username])
     );
 
-    const shelvesWithUsernames = shelfRows.map((shelf) => ({
+    const shelvesWithUsernames = visibleShelfRows.map((shelf) => ({
       ...shelf,
       username: profileMap[shelf.user_id] || "unknown user",
     }));
 
-    setResults((prev) => (page === 1 ? shelvesWithUsernames : [...prev, ...shelvesWithUsernames]));
-    setHasMore(shelfRows.length === PAGE_SIZE);
+    setResults((prev) =>
+      page === 1 ? shelvesWithUsernames : [...prev, ...shelvesWithUsernames]
+      );
+    setHasMore(visibleShelfRows.length === PAGE_SIZE);
     setLoading(false);
   }
 
