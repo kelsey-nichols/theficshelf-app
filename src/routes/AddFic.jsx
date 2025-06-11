@@ -122,7 +122,10 @@ const AddFic = () => {
 
   // For any multi‐select field, either return existing ID or create a new row
   const getOrCreateEntries = async (table, values) => {
-    const names = values.map((v) => (typeof v === "string" ? v : v.label));
+    const names = values
+      .map((v) => (typeof v === "string" ? v.trim() : v.label?.trim()))
+      .filter((name) => name); // ✅ remove blank/undefined
+
     const ids = [];
 
     for (const name of names) {

@@ -476,28 +476,25 @@ const runSearch = async () => {
 
   // ── SHELVES TAB ─────────────────────────────────────────────────────────────
   else if (activeTab === "shelves") {
-    // 1) Title filter (public shelves only)
+    // 1) Title filter (already public by default via the view)
     let titleIds = null;
     if (shelfTitleText.trim()) {
       const { data, error } = await supabase
-        .from("shelves")
+        .from("public_shelves")
         .select("id, title")
         .ilike("title", `%${shelfTitleText.trim()}%`)
-        .eq("is_private", false);
+        .not("title", "ilike", "tbr")
+        .not("title", "ilike", "currently reading");
+
       if (error) {
         console.error(error);
         titleIds = [];
       } else {
-        const filtered = data.filter(
-          (r) =>
-            r.title.trim().toLowerCase() !== "currently reading" &&
-            r.title.trim().toLowerCase() !== "tbr"
-        );
-        titleIds = filtered.map((r) => r.id);
+        titleIds = data.map((r) => r.id);
       }
     }
 
-    // 2) Fandom filter (for public shelves)
+    // 2) Fandom filter (still referencing full shelf table, but policy enforces public visibility)
     let fandomIds = null;
     if (selectedShelfFandoms.length > 0) {
       const idsArr = selectedShelfFandoms.map((f) => f.id);
@@ -505,6 +502,7 @@ const runSearch = async () => {
         .from("shelf_fandoms")
         .select("shelf_id")
         .in("fandom_id", idsArr);
+
       if (error) {
         console.error(error);
         fandomIds = [];
@@ -521,6 +519,7 @@ const runSearch = async () => {
         .from("shelf_relationships")
         .select("shelf_id")
         .in("relationship_id", idsArr);
+
       if (error) {
         console.error(error);
         relationshipIds = [];
@@ -537,6 +536,7 @@ const runSearch = async () => {
         .from("shelf_tags")
         .select("shelf_id")
         .in("tag_id", idsArr);
+
       if (error) {
         console.error(error);
         tagIds = [];
@@ -545,17 +545,19 @@ const runSearch = async () => {
       }
     }
 
-    // Intersect non‐null ID sets
+    // Intersect non-null ID sets
     const sets = [titleIds, fandomIds, relationshipIds, tagIds].filter(
       (s) => s !== null
     );
+
     let finalIds = [];
     if (sets.length === 0) {
-      // fetch all public shelf IDs
       const { data: all, error: allErr } = await supabase
-        .from("shelves")
+        .from("public_shelves")
         .select("id")
-        .eq("is_private", false);
+        .not("title", "ilike", "tbr")
+        .not("title", "ilike", "currently reading");
+
       if (allErr) console.error(allErr);
       finalIds = all.map((r) => r.id);
     } else {
@@ -565,7 +567,7 @@ const runSearch = async () => {
       }
     }
 
-    // PAGINATION logic for shelves
+    // PAGINATION logic
     if (finalIds.length === 0) {
       setResults([]);
       setHasMore(false);
@@ -584,10 +586,11 @@ const runSearch = async () => {
     }
 
     const { data: shelfRows, error: shelfErr } = await supabase
-      .from("shelves")
+      .from("public_shelves")
       .select("id, title, color, user_id")
       .in("id", pageIds)
-      .eq("is_private", false)
+      .not("title", "ilike", "tbr")
+      .not("title", "ilike", "currently reading")
       .order("title", { ascending: true });
 
     if (shelfErr) {
@@ -597,13 +600,7 @@ const runSearch = async () => {
       return;
     }
 
-    const visibleShelfRows = shelfRows.filter(
-      (shelf) =>
-        shelf.title.trim().toLowerCase() !== "currently reading" &&
-        shelf.title.trim().toLowerCase() !== "tbr"
-    );
-
-    const userIds = [...new Set(visibleShelfRows.map((shelf) => shelf.user_id))];
+    const userIds = [...new Set(shelfRows.map((shelf) => shelf.user_id))];
 
     const { data: profileRows, error: profileErr } = await supabase
       .from("profiles")
@@ -614,15 +611,15 @@ const runSearch = async () => {
       profileRows.map((p) => [p.id, p.username])
     );
 
-    const shelvesWithUsernames = visibleShelfRows.map((shelf) => ({
+    const shelvesWithUsernames = shelfRows.map((shelf) => ({
       ...shelf,
       username: profileMap[shelf.user_id] || "unknown user",
     }));
 
     setResults((prev) =>
       page === 1 ? shelvesWithUsernames : [...prev, ...shelvesWithUsernames]
-      );
-    setHasMore(visibleShelfRows.length === PAGE_SIZE);
+    );
+    setHasMore(shelfRows.length === PAGE_SIZE);
     setLoading(false);
   }
 

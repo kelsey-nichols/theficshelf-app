@@ -66,12 +66,18 @@ const CreateShelf = () => {
   // Given an array of selected options, get or create each entry in the specified table,
   // then return an array of their IDs
   const getOrCreateEntries = async (table, values) => {
-    // values: e.g. [{ value: 3, label: "Harry Potter" }, "Twilight", ...]
-    const names = values.map((v) => (typeof v === "string" ? v : v.label));
+    
+    const names = values
+      .map((v) =>
+        typeof v === "string"
+          ? v.trim()
+          : v.label?.toString().trim()     
+      )
+      .filter((name) => name && name.length > 0);
+
     const ids = [];
 
     for (const name of names) {
-      // See if a row already exists (case-insensitive match)
       const { data: existing, error: selectError } = await supabase
         .from(table)
         .select("id")
@@ -82,19 +88,17 @@ const CreateShelf = () => {
         throw selectError;
       }
 
-      if (existing && existing.length > 0) {
+      if (existing?.length) {
         ids.push(existing[0].id);
       } else {
-        // Insert a new row and grab its ID
+        // 3) Insert using the trimmed name
         const { data: inserted, error: insertError } = await supabase
           .from(table)
           .insert([{ name }])
           .select("id")
           .single();
 
-        if (insertError) {
-          throw insertError;
-        }
+        if (insertError) throw insertError;
         ids.push(inserted.id);
       }
     }
