@@ -114,24 +114,33 @@ const handleDeleteAccount = async (e) => {
     return;
   }
 
-  try {
-    const { data, error } = await supabase.functions.invoke("delete-user", {
-      body: { userId }, // do NOT stringify
-      headers: {
-        "Content-Type": "application/json", // ✅ Ensure this is set
-      },
-    });
+  // Confirm the user is logged in
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user?.id) {
+    setDelMsg("No user ID found.");
+    return;
+  }
 
-    if (error) {
-      setDelMsg(error.message);
-    } else if (data?.error) {
-      setDelMsg(data.error);
-    } else {
-      setDelMsg("Account deleted.");
-      navigate("/");
+  try {
+    // Call your Postgres function (RPC) that deletes the user securely server-side
+    const { error: rpcError } = await supabase.rpc('delete_user');
+
+    if (rpcError) {
+      setDelMsg(`Delete failed: ${rpcError.message}`);
+      return;
     }
+
+    setDelMsg("Account deleted successfully.");
+
+    // Sign out the user after deletion
+    await supabase.auth.signOut();
+
+    // Redirect or update UI after deletion
+    navigate("/");
+
   } catch (err) {
-    setDelMsg("Failed to send request to the Edge Function");
+    console.error("Unexpected error during delete:", err);
+    setDelMsg("An unexpected error occurred.");
   }
 };
 
